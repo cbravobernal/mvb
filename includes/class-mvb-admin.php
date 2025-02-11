@@ -160,7 +160,8 @@ class MVB_Admin {
 					'MVBSearch',
 					array(
 						'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-						'nonce'   => wp_create_nonce( 'mvb_search' ),
+						'searchNonce' => wp_create_nonce( 'mvb_search' ),
+						'addNonce' => wp_create_nonce( 'mvb_add_game' )
 					)
 				);
 			}

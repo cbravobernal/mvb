@@ -133,11 +133,14 @@ class MVB_IGDB_API {
 	public static function search_games( $search, $limit = 10 ) {
 		$query = 'search "' . esc_sql( $search ) . '";
 				 fields name, cover.url, first_release_date, 
-				 platforms.*, platforms.slug, platforms.name,
 				 summary;
 				 limit ' . absint( $limit ) . ';';
 
-		return self::request( 'games', $query );
+		error_log('IGDB Search Query: ' . $query);
+		$result = self::request( 'games', $query );
+		error_log('IGDB Search Response count: ' . count($result));
+		
+		return $result;
 	}
 
 	/**
@@ -148,7 +151,7 @@ class MVB_IGDB_API {
 	 */
 	public static function get_game( $game_id ) {
 		$query = 'fields name, cover.url, first_release_date, summary, 
-				 genres.name, platforms.name, rating, rating_count;
+				 genres.name, rating, rating_count;
 				 where id = ' . absint( $game_id ) . ';';
 
 		$result = self::request( 'games', $query );
@@ -169,42 +172,6 @@ class MVB_IGDB_API {
 	public static function init() {
 		add_action( 'wp_ajax_mvb_search_games', array( __CLASS__, 'handle_search_ajax' ) );
 		add_action( 'wp_ajax_mvb_add_game', array( __CLASS__, 'handle_add_game_ajax' ) );
-		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_admin_scripts' ) );
-	}
-
-	/**
-	 * Enqueue admin scripts and styles
-	 *
-	 * @param string $hook The current admin page.
-	 */
-	public static function enqueue_admin_scripts( $hook ) {
-		if ( 'settings_page_mvb-settings' !== $hook ) {
-			return;
-		}
-
-		wp_enqueue_style(
-			'mvb-admin',
-			MVB_PLUGIN_URL . 'assets/css/mvb.css',
-			array(),
-			MVB_VERSION
-		);
-
-		wp_enqueue_script(
-			'mvb-search',
-			MVB_PLUGIN_URL . 'assets/js/search.js',
-			array( 'jquery' ),
-			MVB_VERSION,
-			true
-		);
-
-		wp_localize_script(
-			'mvb-search',
-			'mvbSearch',
-			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'mvb_search' ),
-			)
-		);
 	}
 
 	/**
@@ -315,124 +282,145 @@ class MVB_IGDB_API {
 	 * @return int|WP_Error Post ID on success, WP_Error on failure
 	 */
 	public static function create_videogame_post( $game_data ) {
-		// Create post with content
-		$post_data = array(
-			'post_title'   => sanitize_text_field( $game_data['name'] ),
-			'post_type'    => 'videogame',
-			'post_status'  => 'publish',
-			'post_content' => isset( $game_data['summary'] ) ?
-				wp_kses_post( $game_data['summary'] ) : '',
-		);
+		error_log( '=== Start creating videogame post ===' );
 
-		$post_id = wp_insert_post( $post_data, true );
-
-		if ( is_wp_error( $post_id ) ) {
-			return $post_id;
+		if ( ! function_exists( 'update_field' ) ) {
+			error_log( 'ACF is not active!' );
+			return new WP_Error( 'acf_missing', 'Advanced Custom Fields plugin is not active' );
 		}
 
-		// Handle cover image
-		if ( ! empty( $game_data['cover']['url'] ) ) {
-			$cover_url = str_replace( 't_thumb', 't_cover_big', $game_data['cover']['url'] );
+		try {
+			$post_data = array(
+				'post_title'   => sanitize_text_field( $game_data['name'] ),
+				'post_type'    => 'videogame',
+				'post_status'  => 'publish',
+				'post_content' => isset( $game_data['summary'] ) ?
+					wp_kses_post( $game_data['summary'] ) : '',
+			);
 
-			// Download and attach the image
-			$attachment_id = self::attach_remote_image( $cover_url, $post_id );
+			error_log( 'Creating post with data: ' . print_r( $post_data, true ) );
+			$post_id = wp_insert_post( $post_data, true );
 
-			if ( ! is_wp_error( $attachment_id ) ) {
-				// Update ACF field with attachment ID
-				update_field( 'videogame_cover', $attachment_id, $post_id );
-
-				// Optionally set as featured image
-				set_post_thumbnail( $post_id, $attachment_id );
+			if ( is_wp_error( $post_id ) ) {
+				error_log( 'Error creating post: ' . $post_id->get_error_message() );
+				return $post_id;
 			}
-		}
 
-		// Set release date
-		if ( ! empty( $game_data['first_release_date'] ) ) {
-			update_field( 'videogame_release_date', date( 'Y-m-d', $game_data['first_release_date'] ), $post_id );
-		}
+			error_log( 'Post created with ID: ' . $post_id );
 
-		// Set default status
-		update_field( 'videogame_status', 'backlog', $post_id );
+			// Handle cover image
+			if ( ! empty( $game_data['cover']['url'] ) ) {
+				$cover_url = str_replace( 't_thumb', 't_cover_big', $game_data['cover']['url'] );
+				error_log( 'Processing cover image: ' . $cover_url );
 
-		// Map IGDB platforms to our platform slugs
-		$platform_mapping = array(
-			'pc-windows'   => 'win',
-			'android'      => 'android',
-			'mac'          => 'mac',
-			'xbox360'      => 'xbox360',
-			'linux'        => 'linux',
-			'ps4'          => 'ps4',
-			'ps5'          => 'ps5',
-			'ps3'          => 'ps3',
-			'ps2'          => 'ps2',
-			'ps1'          => 'ps',
-			'xboxone'      => 'xone',
-			'ps-vita'      => 'psvita',
-			'switch'       => 'switch',
-			'wii'          => 'wii',
-			'wii-u'        => 'wiiu',
-			'nintendo-3ds' => 'n3ds',
-			'nintendo-ds'  => 'nds',
-			'gba'          => 'gba',
-			'gb'           => 'gb',
-		);
+				try {
+					$attachment_id = self::attach_remote_image( $cover_url, $post_id );
 
-		// Set platforms
-		if ( ! empty( $game_data['platforms'] ) ) {
-			$platforms = array();
-			foreach ( $game_data['platforms'] as $platform ) {
-				if ( isset( $platform['slug'] ) && isset( $platform_mapping[ $platform['slug'] ] ) ) {
-					$platforms[] = $platform_mapping[ $platform['slug'] ];
+					if ( is_wp_error( $attachment_id ) ) {
+						error_log( 'Error attaching image: ' . $attachment_id->get_error_message() );
+					} else {
+						error_log( 'Image attached with ID: ' . $attachment_id );
+						$acf_result = update_field( 'videogame_cover', $attachment_id, $post_id );
+						error_log( 'ACF cover update result: ' . var_export( $acf_result, true ) );
+						set_post_thumbnail( $post_id, $attachment_id );
+					}
+				} catch ( Exception $e ) {
+					error_log( 'Exception while handling image: ' . $e->getMessage() );
 				}
 			}
 
-			if ( ! empty( $platforms ) ) {
-				// Update the field with an array of values
-				update_field( 'release_platform', $platforms, $post_id );
-
-				// For debugging
-				error_log( 'Platforms found: ' . print_r( $platforms, true ) );
-				error_log( 'Original IGDB platforms: ' . print_r( $game_data['platforms'], true ) );
+			// Set release date
+			if ( ! empty( $game_data['first_release_date'] ) ) {
+				try {
+					$date = date( 'Y-m-d', $game_data['first_release_date'] );
+					$acf_result = update_field( 'videogame_release_date', $date, $post_id );
+					error_log( 'Release date set to ' . $date . '. Result: ' . var_export( $acf_result, true ) );
+				} catch ( Exception $e ) {
+					error_log( 'Exception while setting release date: ' . $e->getMessage() );
+				}
 			}
-		}
 
-		return $post_id;
+			// Set default status
+			try {
+				$acf_result = update_field( 'videogame_status', 'backlog', $post_id );
+				error_log( 'Status set to backlog. Result: ' . var_export( $acf_result, true ) );
+			} catch ( Exception $e ) {
+				error_log( 'Exception while setting status: ' . $e->getMessage() );
+			}
+
+			error_log( '=== Finished creating videogame post ===' );
+			return $post_id;
+
+		} catch ( Exception $e ) {
+			error_log( 'Fatal exception in create_videogame_post: ' . $e->getMessage() );
+			return new WP_Error( 'creation_failed', $e->getMessage() );
+		}
 	}
 
 	/**
 	 * Handle AJAX add game request
 	 */
 	public static function handle_add_game_ajax() {
-		check_ajax_referer( 'mvb_search', 'nonce' );
+		error_log('=== Starting add game AJAX handler ===');
+		
+		try {
+			check_ajax_referer( 'mvb_add_game', 'nonce' );
 
-		if ( ! current_user_can( 'edit_posts' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mvb' ) ) );
+			if ( ! current_user_can( 'edit_posts' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mvb' ) ) );
+			}
+
+			$raw_data = isset($_POST['game']) ? $_POST['game'] : '';
+			error_log('Raw data type: ' . gettype($raw_data));
+			error_log('Raw data content: ' . $raw_data);  // Log the actual content
+			
+			// Try different JSON decode approaches
+			$game_data = json_decode($raw_data, true);
+			if ($game_data === null) {
+				error_log('First JSON decode failed. Error: ' . json_last_error_msg());
+				
+				// Try with stripslashes
+				$game_data = json_decode(stripslashes($raw_data), true);
+				if ($game_data === null) {
+					error_log('Second JSON decode failed. Error: ' . json_last_error_msg());
+					
+					// Try with wp_unslash
+					$game_data = json_decode(wp_unslash($raw_data), true);
+					if ($game_data === null) {
+						error_log('Third JSON decode failed. Error: ' . json_last_error_msg());
+					}
+				}
+			}
+
+			if (!is_array($game_data)) {
+				error_log('Failed to get valid game data array');
+				wp_send_json_error( array( 
+					'message' => __( 'Invalid game data', 'mvb' ),
+					'raw_type' => gettype($raw_data),
+					'raw_content' => substr($raw_data, 0, 1000), // First 1000 chars
+					'json_error' => json_last_error_msg()
+				));
+				return;
+			}
+
+			error_log('Successfully decoded game data: ' . print_r($game_data, true));
+			$result = self::create_videogame_post($game_data);
+
+			if ( is_wp_error( $result ) ) {
+				error_log('Error creating post: ' . $result->get_error_message());
+				wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+			}
+
+			error_log('Successfully created post with ID: ' . $result);
+			wp_send_json_success(
+				array(
+					'message' => __( 'Game added successfully!', 'mvb' ),
+					'post_id' => $result,
+				)
+			);
+		} catch (Exception $e) {
+			error_log('Exception in add game handler: ' . $e->getMessage());
+			wp_send_json_error( array( 'message' => $e->getMessage() ) );
 		}
-
-		$game_data = isset( $_POST['game'] ) ? json_decode( stripslashes( $_POST['game'] ), true ) : null;
-
-		// Debug incoming data
-		error_log( 'Incoming game data: ' . print_r( $game_data, true ) );
-
-		if ( empty( $game_data ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid game data', 'mvb' ) ) );
-		}
-
-		$result = self::create_videogame_post( $game_data );
-
-		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
-		}
-
-		// Debug the final post
-		$platforms = get_field( 'release_platform', $result );
-		error_log( 'Final platforms saved: ' . print_r( $platforms, true ) );
-
-		wp_send_json_success(
-			array(
-				'message' => __( 'Game added successfully!', 'mvb' ),
-				'post_id' => $result,
-			)
-		);
 	}
 }

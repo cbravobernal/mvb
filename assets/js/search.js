@@ -29,7 +29,7 @@
                 type: 'POST',
                 data: {
                     action: 'mvb_search_games',
-                    nonce: MVBSearch.nonce,
+                    nonce: MVBSearch.searchNonce,
                     search: searchTerm
                 },
                 success: function(response) {
@@ -40,7 +40,9 @@
                             (response.data.message || 'No results found') + '</div>');
                     }
                 },
-                error: function() {
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('AJAX Error:', textStatus, errorThrown);
+                    console.log('Response:', jqXHR.responseText);
                     $results.html('<div class="mvb-error">Error occurred while searching</div>');
                 },
                 complete: function() {
@@ -70,7 +72,7 @@
 
                 const buttonAttr = game.exists ? 
                     'disabled' : 
-                    `data-game='${JSON.stringify(game)}'`;
+                    `data-game='${JSON.stringify(game).replace(/'/g, "&#39;")}'`;
 
                 return `
                     <div class="mvb-game-card">
@@ -91,10 +93,10 @@
 
             $results.html(html);
 
-            // Add click handler for Add Game buttons (only for non-existing games)
+            // Add click handler for Add Game buttons
             $('.mvb-add-game').on('click', function() {
                 const $button = $(this);
-                const gameData = $button.data('game');
+                const gameData = JSON.parse($button.attr('data-game'));
                 
                 $button.prop('disabled', true).text('Adding...');
 
@@ -103,7 +105,7 @@
                     type: 'POST',
                     data: {
                         action: 'mvb_add_game',
-                        nonce: MVBSearch.nonce,
+                        nonce: MVBSearch.addNonce,
                         game: JSON.stringify(gameData)
                     },
                     success: function(response) {
@@ -128,12 +130,15 @@
                                 .insertAfter($button);
                         }
                     },
-                    error: function() {
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error('AJAX Error:', textStatus, errorThrown);
+                        console.log('Game Data:', gameData);
+                        console.log('Response:', jqXHR.responseText);
                         $button
                             .prop('disabled', false)
                             .text('Add Game');
                         
-                        $('<div class="notice notice-error"><p>Error occurred while adding game</p></div>')
+                        $('<div class="notice notice-error"><p>Error occurred while adding game: ' + errorThrown + '</p></div>')
                             .insertAfter($button);
                     }
                 });

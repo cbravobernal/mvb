@@ -130,6 +130,9 @@
     font-size: 12px;
     margin: 5px 0;
     padding: 3px 5px;
+    background: rgba(0, 0, 0, 0.8);
+    border-left: 4px solid #00a0d2;
+    color: #fff;
 }
 
 .mvb-game-card .button-disabled {
@@ -137,9 +140,12 @@
     opacity: 0.7;
 }
 
-.mvb-game-card .notice-info {
-    border-left-color: #00a0d2;
-    background-color: #f0f6fc;
+.mvb-game-card .notice-success {
+    border-left-color: #46b450;
+}
+
+.mvb-game-card .notice-error {
+    border-left-color: #dc3232;
 }
 
 .mvb-search-form {

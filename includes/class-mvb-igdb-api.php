@@ -132,14 +132,14 @@ class MVB_IGDB_API {
 	 */
 	public static function search_games( $search, $limit = 10 ) {
 		$query = 'search "' . esc_sql( $search ) . '";
-				 fields name, cover.url, first_release_date, 
-				 summary;
+				 fields name, cover.url, first_release_date, summary,
+				 genres.name, rating, rating_count;
 				 limit ' . absint( $limit ) . ';';
 
-		error_log('IGDB Search Query: ' . $query);
+		error_log( 'IGDB Search Query: ' . $query );
 		$result = self::request( 'games', $query );
-		error_log('IGDB Search Response count: ' . count($result));
-		
+		error_log( 'IGDB Search Response count: ' . count( $result ) );
+
 		return $result;
 	}
 
@@ -150,15 +150,21 @@ class MVB_IGDB_API {
 	 * @return array|WP_Error Game data or WP_Error on failure
 	 */
 	public static function get_game( $game_id ) {
-		$query = 'fields name, cover.url, first_release_date, summary, 
+		error_log( '=== Starting get_game for ID: ' . $game_id . ' ===' );
+
+		$query = 'fields name, cover.url, first_release_date, summary,
 				 genres.name, rating, rating_count;
 				 where id = ' . absint( $game_id ) . ';';
 
+		error_log( 'IGDB Query: ' . $query );
 		$result = self::request( 'games', $query );
 
 		if ( is_wp_error( $result ) ) {
+			error_log( 'Error getting game: ' . $result->get_error_message() );
 			return $result;
 		}
+
+		error_log( 'Game API Response: ' . print_r( $result, true ) );
 
 		return ! empty( $result[0] ) ? $result[0] : new WP_Error(
 			'not_found',
@@ -285,8 +291,8 @@ class MVB_IGDB_API {
 		error_log( '=== Start creating videogame post ===' );
 
 		if ( ! function_exists( 'update_field' ) ) {
-			error_log( 'ACF is not active!' );
-			return new WP_Error( 'acf_missing', 'Advanced Custom Fields plugin is not active' );
+			error_log( 'SCF is not active!' );
+			return new WP_Error( 'acf_missing', 'Secure Custom Fields plugin is not active' );
 		}
 
 		try {
@@ -332,7 +338,7 @@ class MVB_IGDB_API {
 			// Set release date
 			if ( ! empty( $game_data['first_release_date'] ) ) {
 				try {
-					$date = date( 'Y-m-d', $game_data['first_release_date'] );
+					$date       = date( 'Y-m-d', $game_data['first_release_date'] );
 					$acf_result = update_field( 'videogame_release_date', $date, $post_id );
 					error_log( 'Release date set to ' . $date . '. Result: ' . var_export( $acf_result, true ) );
 				} catch ( Exception $e ) {
@@ -361,8 +367,8 @@ class MVB_IGDB_API {
 	 * Handle AJAX add game request
 	 */
 	public static function handle_add_game_ajax() {
-		error_log('=== Starting add game AJAX handler ===');
-		
+		error_log( '=== Starting add game AJAX handler ===' );
+
 		try {
 			check_ajax_referer( 'mvb_add_game', 'nonce' );
 
@@ -370,56 +376,58 @@ class MVB_IGDB_API {
 				wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mvb' ) ) );
 			}
 
-			$raw_data = isset($_POST['game']) ? $_POST['game'] : '';
-			error_log('Raw data type: ' . gettype($raw_data));
-			error_log('Raw data content: ' . $raw_data);  // Log the actual content
-			
+			$raw_data = isset( $_POST['game'] ) ? $_POST['game'] : '';
+			error_log( 'Raw data type: ' . gettype( $raw_data ) );
+			error_log( 'Raw data content: ' . $raw_data );  // Log the actual content
+
 			// Try different JSON decode approaches
-			$game_data = json_decode($raw_data, true);
-			if ($game_data === null) {
-				error_log('First JSON decode failed. Error: ' . json_last_error_msg());
-				
+			$game_data = json_decode( $raw_data, true );
+			if ( $game_data === null ) {
+				error_log( 'First JSON decode failed. Error: ' . json_last_error_msg() );
+
 				// Try with stripslashes
-				$game_data = json_decode(stripslashes($raw_data), true);
-				if ($game_data === null) {
-					error_log('Second JSON decode failed. Error: ' . json_last_error_msg());
-					
+				$game_data = json_decode( stripslashes( $raw_data ), true );
+				if ( $game_data === null ) {
+					error_log( 'Second JSON decode failed. Error: ' . json_last_error_msg() );
+
 					// Try with wp_unslash
-					$game_data = json_decode(wp_unslash($raw_data), true);
-					if ($game_data === null) {
-						error_log('Third JSON decode failed. Error: ' . json_last_error_msg());
+					$game_data = json_decode( wp_unslash( $raw_data ), true );
+					if ( $game_data === null ) {
+						error_log( 'Third JSON decode failed. Error: ' . json_last_error_msg() );
 					}
 				}
 			}
 
-			if (!is_array($game_data)) {
-				error_log('Failed to get valid game data array');
-				wp_send_json_error( array( 
-					'message' => __( 'Invalid game data', 'mvb' ),
-					'raw_type' => gettype($raw_data),
-					'raw_content' => substr($raw_data, 0, 1000), // First 1000 chars
-					'json_error' => json_last_error_msg()
-				));
+			if ( ! is_array( $game_data ) ) {
+				error_log( 'Failed to get valid game data array' );
+				wp_send_json_error(
+					array(
+						'message'     => __( 'Invalid game data', 'mvb' ),
+						'raw_type'    => gettype( $raw_data ),
+						'raw_content' => substr( $raw_data, 0, 1000 ), // First 1000 chars
+						'json_error'  => json_last_error_msg(),
+					)
+				);
 				return;
 			}
 
-			error_log('Successfully decoded game data: ' . print_r($game_data, true));
-			$result = self::create_videogame_post($game_data);
+			error_log( 'Successfully decoded game data: ' . print_r( $game_data, true ) );
+			$result = self::create_videogame_post( $game_data );
 
 			if ( is_wp_error( $result ) ) {
-				error_log('Error creating post: ' . $result->get_error_message());
+				error_log( 'Error creating post: ' . $result->get_error_message() );
 				wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 			}
 
-			error_log('Successfully created post with ID: ' . $result);
+			error_log( 'Successfully created post with ID: ' . $result );
 			wp_send_json_success(
 				array(
 					'message' => __( 'Game added successfully!', 'mvb' ),
 					'post_id' => $result,
 				)
 			);
-		} catch (Exception $e) {
-			error_log('Exception in add game handler: ' . $e->getMessage());
+		} catch ( Exception $e ) {
+			error_log( 'Exception in add game handler: ' . $e->getMessage() );
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
 		}
 	}

@@ -23,6 +23,8 @@ class MVB_Admin {
 		add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_admin_scripts' ) );
 		add_action( 'wp_ajax_mvb_test_igdb_connection', array( __CLASS__, 'test_igdb_connection' ) );
+		add_action( 'wp_ajax_mvb_sync_platforms', array( __CLASS__, 'handle_sync_platforms_ajax' ) );
+		add_action( 'wp_ajax_mvb_sync_companies', array( __CLASS__, 'handle_sync_companies_ajax' ) );
 	}
 
 	/**
@@ -159,9 +161,9 @@ class MVB_Admin {
 					'mvb-search',
 					'MVBSearch',
 					array(
-						'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+						'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
 						'searchNonce' => wp_create_nonce( 'mvb_search' ),
-						'addNonce' => wp_create_nonce( 'mvb_add_game' )
+						'addNonce'    => wp_create_nonce( 'mvb_add_game' ),
 					)
 				);
 			}
@@ -350,5 +352,71 @@ class MVB_Admin {
 			</div>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Handle platform sync AJAX request
+	 */
+	public static function handle_sync_platforms_ajax() {
+		check_ajax_referer( 'mvb_sync_platforms', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mvb' ) ) );
+		}
+
+		$result = MVB_IGDB_API::sync_platforms();
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error(
+				array(
+					'message' => $result->get_error_message(),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message' => sprintf(
+					__( 'Platforms synced successfully! Created: %1$d, Updated: %2$d, Errors: %3$d', 'mvb' ),
+					$result['created'],
+					$result['updated'],
+					count( $result['errors'] )
+				),
+				'details' => $result,
+			)
+		);
+	}
+
+	/**
+	 * Handle company sync AJAX request
+	 */
+	public static function handle_sync_companies_ajax() {
+		check_ajax_referer( 'mvb_sync_companies', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mvb' ) ) );
+		}
+
+		$result = MVB_IGDB_API::sync_companies();
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error(
+				array(
+					'message' => $result->get_error_message(),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message' => sprintf(
+					__( 'Companies synced successfully! Created: %1$d, Updated: %2$d, Errors: %3$d', 'mvb' ),
+					$result['created'],
+					$result['updated'],
+					count( $result['errors'] )
+				),
+				'details' => $result,
+			)
+		);
 	}
 }

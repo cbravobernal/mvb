@@ -227,6 +227,11 @@ class MVB_IGDB_API {
 			$existing_id         = self::game_exists( $game['name'] );
 			$game['exists']      = $existing_id ? true : false;
 			$game['existing_id'] = $existing_id;
+
+			// Format release date if exists
+			if ( ! empty( $game['first_release_date'] ) ) {
+				$game['release_date'] = date( 'M j, Y', $game['first_release_date'] );
+			}
 		}
 
 		wp_send_json_success( array( 'games' => $results ) );

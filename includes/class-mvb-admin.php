@@ -60,7 +60,7 @@ class MVB_Admin {
 		}
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Add Videogame from IGDB', '' ); ?></h1>
+			<h1><?php esc_html_e( 'Add Videogame from IGDB', 'mvb' ); ?></h1>
 
 			<?php
 			$client_id     = get_option( 'mvb_igdb_client_id' );
@@ -89,12 +89,11 @@ class MVB_Admin {
 					<button type="button" class="button button-secondary" id="mvb-test-connection">
 						<?php esc_html_e( 'Test API Connection', 'mvb' ); ?>
 					</button>
-					<div id="mvb-connection-result" style="margin-top: 10px;"></div>
+					<div id="mvb-connection-result"></div>
 				</div>
 
 				<!-- Game Search Section -->
 				<div class="mvb-search-section">
-					<p><?php esc_html_e( 'Search for games in the IGDB database.', 'mvb' ); ?></p>
 					<div class="mvb-search-form">
 						<div class="mvb-search-input">
 							<input type="text" 
@@ -105,8 +104,8 @@ class MVB_Admin {
 								<?php esc_html_e( 'Search', 'mvb' ); ?>
 							</button>
 						</div>
-						<div id="mvb-search-results" class="mvb-search-results"></div>
 					</div>
+					<div id="mvb-search-results" class="mvb-search-results"></div>
 				</div>
 				<?php
 			}

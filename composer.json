@@ -1,5 +1,5 @@
 {
-    "name": "carlos/mvp",
+    "name": "carlos/mvb",
     "description": "Plugin to create a videogame database backlog",
     "type": "project",
     "require": {
@@ -9,7 +9,7 @@
     "license": "GPL-3.0-or-later",
     "autoload": {
         "psr-4": {
-            "Carlos\\MVP\\": "src/"
+            "Carlos\\MVB\\": "src/"
         }
     },
     "authors": [

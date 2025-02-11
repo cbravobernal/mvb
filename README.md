@@ -13,6 +13,9 @@ A WordPress plugin to manage your video game collection using the IGDB API. This
 ### Secure Custom Fields Plugin
 This plugin requires the [Secure Custom Fields](https://wordpress.org/plugins/secure-custom-fields/) plugin with the following configuration:
 
+⚠️ Note: You can import the configuration from the `secure-custom-fields.json` file by using the `Secure Custom Fields` → `Import` → `Import from File` option.
+You may skip the three steps below.
+
 1. Custom Post Type Setup
 Create a custom post type called `videogame` with the following settings:
 

@@ -1,0 +1,166 @@
+.mvb-test-connection {
+    margin-top: 20px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.mvb-test-connection h2 {
+    margin-top: 0;
+}
+
+#mvb-connection-result {
+    min-height: 30px;
+}
+
+#mvb-connection-result .spinner {
+    float: none;
+    margin-left: 0;
+}
+
+.mvb-search-section {
+    margin-top: 20px;
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.mvb-settings-section {
+    margin-bottom: 20px;
+}
+
+.mvb-test-connection {
+    margin: 10px 0;
+}
+
+.mvb-search-results {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.mvb-game-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin-bottom: 12px;
+}
+
+.mvb-game-card img {
+    width: 100%;
+    aspect-ratio: 3/4;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.mvb-game-card h3 {
+    margin: 0 0 15px;
+    font-size: 16px;
+    line-height: 1.4;
+    flex-grow: 1;
+}
+
+.mvb-loading {
+    text-align: center;
+    padding: 20px;
+}
+
+.mvb-error {
+    color: #dc3232;
+    text-align: center;
+    padding: 10px;
+}
+
+.mvb-game-card .button {
+    margin-top: auto;
+    width: 100%;
+}
+
+.mvb-game-card .notice {
+    font-size: 12px;
+    margin: 5px 0;
+    padding: 3px 5px;
+}
+
+.mvb-game-card .button-disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.mvb-game-card .notice-info {
+    border-left-color: #00a0d2;
+    background-color: #f0f6fc;
+}
+
+.mvb-search-form {
+    max-width: 800px;
+}
+
+.mvb-search-input {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.mvb-search-input input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.mvb-game-card:nth-child(n+4) {
+    border-top: 1px solid #eee;
+    padding-top: 27px;
+}
+
+.mvb-game-card:nth-child(n+7) {
+    border-top: 1px solid #eee;
+    padding-top: 27px;
+}
+
+@media screen and (max-width: 1200px) {
+    .mvb-search-results {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .mvb-game-card:nth-child(n+4) {
+        border-top: none;
+        padding-top: 15px;
+    }
+    
+    .mvb-game-card:nth-child(n+3) {
+        border-top: 1px solid #eee;
+        padding-top: 27px;
+    }
+    
+    .mvb-game-card:nth-child(n+5) {
+        border-top: 1px solid #eee;
+        padding-top: 27px;
+    }
+}
+
+@media screen and (max-width: 782px) {
+    .mvb-search-results {
+        grid-template-columns: 1fr;
+    }
+    
+    .mvb-game-card:nth-child(n) {
+        border-top: none;
+        padding-top: 15px;
+    }
+    
+    .mvb-game-card:not(:first-child) {
+        border-top: 1px solid #eee;
+        padding-top: 27px;
+    }
+}

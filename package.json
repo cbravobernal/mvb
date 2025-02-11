@@ -1,0 +1,28 @@
+{
+  "dependencies": {
+    "@wordpress/prettier-config": "^4.17.0"
+  },
+  "name": "mvb",
+  "version": "1.0.0",
+  "description": "Integrate block bindings in SCF",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cbravobernal/mvb.git"
+  },
+  "keywords": [
+    "SCF",
+    "block",
+    "bindings"
+  ],
+  "author": "cbravobernal",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/cbravobernal/mvb/issues"
+  },
+  "homepage": "https://github.com/cbravobernal/mvb#readme"
+}

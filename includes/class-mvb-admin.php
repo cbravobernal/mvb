@@ -85,8 +85,8 @@ class MVB_Admin {
 			} else {
 				?>
 				<!-- Test Connection Section -->
-				<div class="mvb-test-connection">
-					<button type="button" class="button button-secondary" id="mvb-test-connection">
+				<div class="mvb-test-connection" data-wp-interactive="mvb">
+					<button type="button" class="button button-secondary" id="mvb-test-connection" data-wp-on--click="actions.setSearch">
 						<?php esc_html_e( 'Test API Connection', 'mvb' ); ?>
 					</button>
 					<div id="mvb-connection-result"></div>
@@ -342,9 +342,9 @@ class MVB_Admin {
 			</form>
 
 			<!-- Test Connection Section -->
-			<div class="mvb-test-connection">
+			<div class="mvb-test-connection" data-wp-interactive="mvb">
 				<h2><?php esc_html_e( 'Test API Connection', 'mvb' ); ?></h2>
-				<button type="button" class="button button-secondary" id="mvb-test-connection">
+				<button type="button" class="button button-secondary" id="mvb-test-connection" data-wp-on--click="actions.setSearch">
 					<?php esc_html_e( 'Test Connection', 'mvb' ); ?>
 				</button>
 				<div id="mvb-connection-result" style="margin-top: 10px;"></div>

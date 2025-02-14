@@ -332,7 +332,7 @@ class MVB_IGDB_API {
 					} else {
 						error_log( 'Image attached with ID: ' . $attachment_id );
 						$acf_result = update_field( 'videogame_cover', $attachment_id, $post_id );
-						error_log( 'ACF cover update result: ' . var_export( $acf_result, true ) );
+						error_log( 'SCF cover update result: ' . var_export( $acf_result, true ) );
 						set_post_thumbnail( $post_id, $attachment_id );
 					}
 				} catch ( Exception $e ) {

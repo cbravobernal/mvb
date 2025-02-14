@@ -1,12 +1,12 @@
 {
   "dependencies": {
+    "@wordpress/interactivity": "^6.17.0",
     "@wordpress/prettier-config": "^4.17.0"
   },
   "name": "mvb",
   "version": "1.0.0",
   "description": "Integrate block bindings in SCF",
   "main": "index.js",
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

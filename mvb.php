@@ -74,6 +74,10 @@ class MVB {
 		// Add column for status
 		add_filter('manage_videogame_posts_columns', array(__CLASS__, 'add_videogame_status_column'));
 		add_action('manage_videogame_posts_custom_column', array(__CLASS__, 'display_videogame_status_column'), 10, 2);
+
+		// Add sorting functionality
+		add_filter('manage_edit-videogame_sortable_columns', array(__CLASS__, 'make_columns_sortable'));
+		add_action('pre_get_posts', array(__CLASS__, 'handle_custom_sorting'));
 	}
 
 	/**
@@ -105,8 +109,39 @@ class MVB {
 	 * Add videogame status column
 	 */
 	public static function add_videogame_status_column($columns) {
+		// Remove date column
+		unset($columns['date']);
+		
+		// Add our custom columns
 		$columns['videogame_status'] = __('Status', 'mvb');
+		$columns['videogame_completion_date'] = __('Completion Date', 'mvb');
 		return $columns;
+	}
+
+	/**
+	 * Make columns sortable
+	 */
+	public static function make_columns_sortable($columns) {
+		$columns['videogame_completion_date'] = 'videogame_completion_date';
+		return $columns;
+	}
+
+	/**
+	 * Handle custom column sorting
+	 *
+	 * @param WP_Query $query The main query.
+	 */
+	public static function handle_custom_sorting($query) {
+		if (!is_admin()) {
+			return;
+		}
+
+		$orderby = $query->get('orderby');
+
+		if ('videogame_completion_date' === $orderby) {
+			$query->set('meta_key', 'videogame_completion_date');
+			$query->set('orderby', 'meta_value');
+		}
 	}
 
 	/**
@@ -115,7 +150,16 @@ class MVB {
 	public static function display_videogame_status_column($column, $post_id) {
 		if ($column === 'videogame_status') {
 			$status = get_post_meta($post_id, 'videogame_status', true);
-			echo esc_html($status);
+			$status_labels = array(
+				'finished' => __('Finished', 'mvb'),
+				'playing' => __('Playing', 'mvb'),
+				'backlog' => __('Backlog', 'mvb'),
+				'wishlist' => __('Wishlist', 'mvb'),
+			);
+			echo esc_html($status_labels[$status] ?? $status);
+		} elseif ($column === 'videogame_completion_date') {
+			$completion_date = get_post_meta($post_id, 'videogame_completion_date', true);
+			echo esc_html($completion_date);
 		}
 	}
 
@@ -133,11 +177,15 @@ class MVB {
 					<span class="title"><?php esc_html_e('Status', 'mvb'); ?></span>
 					<select name="videogame_status">
 						<option value=""><?php esc_html_e('Select Status', 'mvb'); ?></option>
-						<option value="played"><?php esc_html_e('Played', 'mvb'); ?></option>
+						<option value="finished"><?php esc_html_e('Finished', 'mvb'); ?></option>
 						<option value="playing"><?php esc_html_e('Playing', 'mvb'); ?></option>
 						<option value="backlog"><?php esc_html_e('Backlog', 'mvb'); ?></option>
 						<option value="wishlist"><?php esc_html_e('Wishlist', 'mvb'); ?></option>
 					</select>
+				</label>
+				<label class="inline-edit-group">
+					<span class="title"><?php esc_html_e('Completion Date', 'mvb'); ?></span>
+					<input type="date" name="videogame_completion_date" />
 				</label>
 			</div>
 		</fieldset>
@@ -171,6 +219,15 @@ class MVB {
 				sanitize_text_field($_POST['videogame_status'])
 			);
 		}
+
+		// Save completion date if set
+		if (isset($_POST['videogame_completion_date'])) {
+			update_post_meta(
+				$post_id,
+				'videogame_completion_date',
+				sanitize_text_field($_POST['videogame_completion_date'])
+			);
+		}
 	}
 
 	/**
@@ -192,8 +249,12 @@ class MVB {
 					post_id = parseInt(this.getId(id));
 				}
 				if (post_id > 0) {
-					var status = $('#post-' + post_id).find('.column-videogame_status').text();
+					var $row = $('#post-' + post_id);
+					var status = $row.find('.column-videogame_status').text();
+					var completion_date = $row.find('.column-videogame_completion_date').text();
+					
 					$('select[name="videogame_status"]').val(status);
+					$('input[name="videogame_completion_date"]').val(completion_date);
 				}
 			};
 		});

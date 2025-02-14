@@ -1,5 +1,50 @@
 [
     {
+        "key": "group_67ae287ae7720",
+        "title": "Post Fields",
+        "fields": [
+            {
+                "key": "field_67ae287b11bf6",
+                "label": "Post Field",
+                "name": "post_field",
+                "aria-label": "",
+                "type": "text",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": "Default post field",
+                "maxlength": "",
+                "allow_in_bindings": 1,
+                "placeholder": "",
+                "prepend": "",
+                "append": ""
+            }
+        ],
+        "location": [
+            [
+                {
+                    "param": "post_type",
+                    "operator": "==",
+                    "value": "post"
+                }
+            ]
+        ],
+        "menu_order": 0,
+        "position": "normal",
+        "style": "default",
+        "label_placement": "top",
+        "instruction_placement": "label",
+        "hide_on_screen": "",
+        "active": true,
+        "description": "",
+        "show_in_rest": 0
+    },
+    {
         "key": "group_67aa115a2a3c8",
         "title": "Videogames Fields",
         "fields": [
@@ -26,7 +71,7 @@
                 "max_height": "",
                 "max_size": "",
                 "mime_types": "",
-                "allow_in_bindings": 1,
+                "allow_in_bindings": 0,
                 "preview_size": "medium"
             },
             {
@@ -44,7 +89,7 @@
                     "id": ""
                 },
                 "choices": {
-                    "played": "Played",
+                    "finished": "Finished",
                     "playing": "Playing",
                     "backlog": "Backlog",
                     "wishlist": "Wishlist"
@@ -76,6 +121,25 @@
                 "return_format": "d\/m\/Y",
                 "first_day": 1,
                 "allow_in_bindings": 1
+            },
+            {
+                "key": "field_67acb10bbe4c7",
+                "label": "Completion Date",
+                "name": "videogame_completion_date",
+                "aria-label": "",
+                "type": "date_picker",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "display_format": "d\/m\/Y",
+                "return_format": "d\/m\/Y",
+                "first_day": 1,
+                "allow_in_bindings": 0
             }
         ],
         "location": [
@@ -314,12 +378,11 @@
         "supports": [
             "title",
             "editor",
-            "thumbnail",
             "custom-fields"
         ],
         "taxonomies": "",
-        "has_archive": false,
-        "has_archive_slug": "",
+        "has_archive": true,
+        "has_archive_slug": "videogames",
         "rewrite": {
             "permalink_rewrite": "post_type_key",
             "with_front": "1",

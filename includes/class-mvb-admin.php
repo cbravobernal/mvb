@@ -33,9 +33,11 @@ class MVB_Admin {
 		add_action( 'wp_ajax_mvb_sync_platforms', array( __CLASS__, 'handle_sync_platforms_ajax' ) );
 		add_action( 'wp_ajax_mvb_test_igdb_connection', array( __CLASS__, 'test_igdb_connection' ) );
 
-		// Add filter to videogame list
+		// Add filters to videogame list
 		add_action('restrict_manage_posts', array(__CLASS__, 'add_completion_year_filter'));
+		add_action('restrict_manage_posts', array(__CLASS__, 'add_platform_filter'));
 		add_filter('parse_query', array(__CLASS__, 'handle_completion_year_filter'));
+		add_filter('parse_query', array(__CLASS__, 'handle_platform_filter'));
 
 		// Remove default date filter for videogames
 		add_filter('months_dropdown_results', array(__CLASS__, 'remove_months_dropdown'), 10, 2);
@@ -779,6 +781,79 @@ class MVB_Admin {
 		));
 
 		error_log('MVB: Meta query: ' . print_r($query->get('meta_query'), true));
+	}
+
+	/**
+	 * Add platform filter dropdown
+	 *
+	 * @param string $post_type Current post type.
+	 */
+	public static function add_platform_filter($post_type) {
+		if ('videogame' !== $post_type) {
+			return;
+		}
+
+		$current_platform = isset($_GET['platform']) ? $_GET['platform'] : '';
+
+		// Get all platforms
+		$platforms = get_terms(array(
+			'taxonomy' => 'mvb_platform',
+			'hide_empty' => true,
+			'orderby' => 'name',
+			'order' => 'ASC',
+		));
+
+		if (empty($platforms)) {
+			return;
+		}
+
+		?>
+		<select name="platform">
+			<option value=""><?php esc_html_e('All Platforms', 'mvb'); ?></option>
+			<?php
+			foreach ($platforms as $platform) {
+				printf(
+					'<option value="%s" %s>%s</option>',
+					esc_attr($platform->slug),
+					selected($platform->slug, $current_platform, false),
+					esc_html($platform->name)
+				);
+			}
+			?>
+		</select>
+		<?php
+	}
+
+	/**
+	 * Handle platform filter
+	 *
+	 * @param WP_Query $query Current query.
+	 */
+	public static function handle_platform_filter($query) {
+		global $pagenow;
+
+		if (!is_admin() || 
+			'edit.php' !== $pagenow || 
+			!$query->is_main_query() || 
+			empty($_GET['platform']) || 
+			'videogame' !== $query->get('post_type')
+		) {
+			return;
+		}
+
+		$platform = sanitize_text_field($_GET['platform']);
+		error_log('MVB: Filtering by platform: ' . $platform);
+
+		// Add tax query for platform
+		$tax_query = $query->get('tax_query') ?: array();
+		$tax_query[] = array(
+			'taxonomy' => 'mvb_platform',
+			'field' => 'slug',
+			'terms' => $platform,
+		);
+		$query->set('tax_query', $tax_query);
+
+		error_log('MVB: Tax query: ' . print_r($query->get('tax_query'), true));
 	}
 
 	/**

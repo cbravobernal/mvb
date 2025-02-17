@@ -293,57 +293,86 @@ class MVB_IGDB_API {
 	 *
 	 * @param int   $post_id Post ID.
 	 * @param array $game IGDB game data.
+	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
-	private static function process_companies($post_id, $game) {
+	public static function process_companies($post_id, $game) {
 		error_log('=== Processing companies for game ID: ' . $post_id . ' ===');
-		error_log('Game data: ' . print_r($game, true));
-
+		
 		if (empty($game['involved_companies'])) {
 			error_log('No involved companies found');
-			return;
+			return true;
 		}
 
-		foreach ($game['involved_companies'] as $involved_company) {
-			error_log('Processing involved company: ' . print_r($involved_company, true));
-			
-			if (empty($involved_company['company'])) {
-				error_log('No company data found in involved company');
-				continue;
+		try {
+			// First, let's clean up any existing numeric company terms
+			$existing_terms = wp_get_object_terms($post_id, 'mvb_company');
+			if (!is_wp_error($existing_terms)) {
+				foreach ($existing_terms as $term) {
+					if (is_numeric($term->name) || preg_match('/^\d+$/', $term->name)) {
+						error_log('Deleting numeric company term: ' . $term->name);
+						wp_remove_object_terms($post_id, $term->term_id, 'mvb_company');
+						wp_delete_term($term->term_id, 'mvb_company');
+					}
+				}
 			}
 
-			$company = $involved_company['company'];
-			error_log('Adding/updating company: ' . print_r($company, true));
-			
-			$term_id = MVB_Taxonomies::add_or_update_company($company);
+			foreach ($game['involved_companies'] as $involved_company) {
+				error_log('Processing involved company: ' . print_r($involved_company, true));
+				
+				if (empty($involved_company['company'])) {
+					error_log('No company data found in involved company');
+					continue;
+				}
 
-			if (is_wp_error($term_id)) {
-				error_log('Error adding company: ' . $term_id->get_error_message());
-				continue;
-			}
+				$company = $involved_company['company'];
 
-			error_log('Successfully added/updated company with term ID: ' . $term_id);
+				// Skip if company name is just a number or empty
+				if (empty($company['name']) || 
+					is_numeric($company['name']) || 
+					preg_match('/^\d+$/', $company['name']) ||
+					trim($company['name']) === ''
+				) {
+					error_log('Skipping invalid company name: ' . ($company['name'] ?? 'empty'));
+					continue;
+				}
 
-			// Determine company role
-			$roles = array();
-			if (!empty($involved_company['developer'])) {
-				$roles[] = 'developer';
-			}
-			if (!empty($involved_company['publisher'])) {
-				$roles[] = 'publisher';
-			}
-			if (!empty($involved_company['supporting'])) {
-				$roles[] = 'supporting';
-			}
-			if (!empty($involved_company['porting'])) {
-				$roles[] = 'porting';
-			}
+				error_log('Adding/updating company: ' . print_r($company, true));
+				
+				$term_id = MVB_Taxonomies::add_or_update_company($company);
 
-			error_log('Company roles: ' . implode(', ', $roles));
+				if (is_wp_error($term_id)) {
+					error_log('Error adding company: ' . $term_id->get_error_message());
+					continue;
+				}
 
-			foreach ($roles as $role) {
-				MVB_Taxonomies::link_company_to_game($post_id, $term_id, $role);
-				error_log('Linked company ' . $term_id . ' to game ' . $post_id . ' with role: ' . $role);
+				error_log('Successfully added/updated company with term ID: ' . $term_id);
+
+				// Determine company role
+				$roles = array();
+				if (!empty($involved_company['developer'])) {
+					$roles[] = 'developer';
+				}
+				if (!empty($involved_company['publisher'])) {
+					$roles[] = 'publisher';
+				}
+				if (!empty($involved_company['supporting'])) {
+					$roles[] = 'supporting';
+				}
+				if (!empty($involved_company['porting'])) {
+					$roles[] = 'porting';
+				}
+
+				error_log('Company roles: ' . implode(', ', $roles));
+
+				foreach ($roles as $role) {
+					MVB_Taxonomies::link_company_to_game($post_id, $term_id, $role);
+					error_log('Linked company ' . $term_id . ' to game ' . $post_id . ' with role: ' . $role);
+				}
 			}
+			return true;
+		} catch (Exception $e) {
+			error_log('Error processing companies: ' . $e->getMessage());
+			return new WP_Error('company_processing_error', $e->getMessage());
 		}
 	}
 

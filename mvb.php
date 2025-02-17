@@ -30,6 +30,7 @@ define( 'MVB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 // Include required files
 require_once MVB_PLUGIN_DIR . 'includes/class-mvb-admin.php';
 require_once MVB_PLUGIN_DIR . 'includes/class-mvb-igdb-api.php';
+require_once MVB_PLUGIN_DIR . 'includes/class-mvb-taxonomies.php';
 
 /**
  * Class MVB
@@ -44,6 +45,8 @@ class MVB {
 		MVB_Admin::init();
 		// Initialize IGDB API
 		MVB_IGDB_API::init();
+		// Initialize taxonomies
+		MVB_Taxonomies::init();
 
 		// Load text domain
 		add_action( 'plugins_loaded', array( __CLASS__, 'load_textdomain' ) );

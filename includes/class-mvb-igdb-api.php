@@ -133,7 +133,8 @@ class MVB_IGDB_API {
 	public static function search_games( $search, $limit = 10 ) {
 		$query = 'search "' . esc_sql( $search ) . '";
 				 fields name, cover.url, first_release_date, summary,
-				 genres.name, rating, rating_count;
+				 genres.name, rating, rating_count, involved_companies.*, 
+				 involved_companies.company.*;
 				 limit ' . absint( $limit ) . ';';
 
 		error_log( 'IGDB Search Query: ' . $query );
@@ -153,7 +154,8 @@ class MVB_IGDB_API {
 		error_log( '=== Starting get_game for ID: ' . $game_id . ' ===' );
 
 		$query = 'fields name, cover.url, first_release_date, summary,
-				 genres.name, rating, rating_count;
+				 genres.name, rating, rating_count, involved_companies.*, 
+				 involved_companies.company.*;
 				 where id = ' . absint( $game_id ) . ';';
 
 		error_log( 'IGDB Query: ' . $query );
@@ -287,6 +289,83 @@ class MVB_IGDB_API {
 	}
 
 	/**
+	 * Process involved companies for a game
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $game IGDB game data.
+	 */
+	private static function process_companies($post_id, $game) {
+		error_log('=== Processing companies for game ID: ' . $post_id . ' ===');
+		error_log('Game data: ' . print_r($game, true));
+
+		if (empty($game['involved_companies'])) {
+			error_log('No involved companies found');
+			return;
+		}
+
+		foreach ($game['involved_companies'] as $involved_company) {
+			error_log('Processing involved company: ' . print_r($involved_company, true));
+			
+			if (empty($involved_company['company'])) {
+				error_log('No company data found in involved company');
+				continue;
+			}
+
+			$company = $involved_company['company'];
+			error_log('Adding/updating company: ' . print_r($company, true));
+			
+			$term_id = MVB_Taxonomies::add_or_update_company($company);
+
+			if (is_wp_error($term_id)) {
+				error_log('Error adding company: ' . $term_id->get_error_message());
+				continue;
+			}
+
+			error_log('Successfully added/updated company with term ID: ' . $term_id);
+
+			// Determine company role
+			$roles = array();
+			if (!empty($involved_company['developer'])) {
+				$roles[] = 'developer';
+			}
+			if (!empty($involved_company['publisher'])) {
+				$roles[] = 'publisher';
+			}
+			if (!empty($involved_company['supporting'])) {
+				$roles[] = 'supporting';
+			}
+			if (!empty($involved_company['porting'])) {
+				$roles[] = 'porting';
+			}
+
+			error_log('Company roles: ' . implode(', ', $roles));
+
+			foreach ($roles as $role) {
+				MVB_Taxonomies::link_company_to_game($post_id, $term_id, $role);
+				error_log('Linked company ' . $term_id . ' to game ' . $post_id . ' with role: ' . $role);
+			}
+		}
+	}
+
+	/**
+	 * Register game from IGDB
+	 */
+	public function register_game($igdb_id) {
+		$game_data = $this->get_game_data($igdb_id);
+		
+		if (empty($game_data)) {
+			return new WP_Error('no_game_data', __('No game data found', 'mvb'));
+		}
+
+		// ... existing game registration code ...
+
+		// Process companies
+		$this->process_companies($post_id, $game_data);
+
+		// ... rest of the code ...
+	}
+
+	/**
 	 * Create videogame post from IGDB data
 	 *
 	 * @param array $game_data Game data from IGDB.
@@ -358,6 +437,9 @@ class MVB_IGDB_API {
 			} catch ( Exception $e ) {
 				error_log( 'Exception while setting status: ' . $e->getMessage() );
 			}
+
+			// Process companies
+			self::process_companies($post_id, $game_data);
 
 			error_log( '=== Finished creating videogame post ===' );
 			return $post_id;

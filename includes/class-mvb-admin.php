@@ -36,6 +36,9 @@ class MVB_Admin {
 		// Add filter to videogame list
 		add_action('restrict_manage_posts', array(__CLASS__, 'add_completion_year_filter'));
 		add_filter('parse_query', array(__CLASS__, 'handle_completion_year_filter'));
+
+		// Remove default date filter for videogames
+		add_filter('months_dropdown_results', array(__CLASS__, 'remove_months_dropdown'), 10, 2);
 	}
 
 	/**
@@ -126,11 +129,12 @@ class MVB_Admin {
 	}
 
 	/**
-	 * Enqueue admin scripts
+	 * Enqueue admin scripts.
 	 *
 	 * @param string $hook The current admin page.
 	 */
-	public static function enqueue_admin_scripts( $hook ) {
+	public static function enqueue_admin_scripts($hook) {
+
 		if ( 'settings_page_mvb-settings' === $hook || 'videogame_page_mvb-add-game' === $hook ) {
 			wp_enqueue_style(
 				'mvb-admin',
@@ -775,5 +779,19 @@ class MVB_Admin {
 		));
 
 		error_log('MVB: Meta query: ' . print_r($query->get('meta_query'), true));
+	}
+
+	/**
+	 * Remove months dropdown for videogames post type
+	 *
+	 * @param array    $months   Array of months.
+	 * @param WP_Post_Type $post_type Post type object.
+	 * @return array Empty array for videogames, original array for other post types
+	 */
+	public static function remove_months_dropdown($months, $post_type) {
+		if ('videogame' === $post_type) {
+			return array();
+		}
+		return $months;
 	}
 }

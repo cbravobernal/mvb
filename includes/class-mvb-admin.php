@@ -30,6 +30,7 @@ class MVB_Admin {
 		
 		// Register AJAX handlers
 		add_action( 'wp_ajax_mvb_sync_companies', array( __CLASS__, 'handle_sync_companies_ajax' ) );
+		add_action( 'wp_ajax_mvb_sync_platforms', array( __CLASS__, 'handle_sync_platforms_ajax' ) );
 		add_action( 'wp_ajax_mvb_test_igdb_connection', array( __CLASS__, 'test_igdb_connection' ) );
 	}
 
@@ -157,6 +158,7 @@ class MVB_Admin {
 						'syncErrors' => __('Sync completed with errors:', 'mvb'),
 						'syncError' => __('Error during sync. Please try again.', 'mvb'),
 						'syncCompanies' => __('Sync Companies', 'mvb'),
+						'syncPlatforms' => __('Sync Platforms', 'mvb'),
 					),
 				)
 			);
@@ -374,6 +376,16 @@ class MVB_Admin {
 				</button>
 				<div id="mvb-sync-result" style="margin-top: 10px;"></div>
 			</div>
+
+			<!-- Sync Platforms Section -->
+			<div class="mvb-sync-section">
+				<h2><?php esc_html_e('Sync Platforms', 'mvb'); ?></h2>
+				<p><?php esc_html_e('Update platform information for existing videogames.', 'mvb'); ?></p>
+				<button type="button" class="button button-secondary" id="mvb-sync-platforms">
+					<?php esc_html_e('Sync Platforms', 'mvb'); ?>
+				</button>
+				<div id="mvb-platforms-result" style="margin-top: 10px;"></div>
+			</div>
 		</div>
 		<?php
 	}
@@ -382,33 +394,149 @@ class MVB_Admin {
 	 * Handle platform sync AJAX request
 	 */
 	public static function handle_sync_platforms_ajax() {
-		check_ajax_referer( 'mvb_sync_platforms', 'nonce' );
+		try {
+			// Verify nonce with the correct nonce key
+			if (!check_ajax_referer('mvb_ajax_nonce', 'nonce', false)) {
+				wp_send_json_error(array(
+					'message' => __('Security check failed. Please refresh the page and try again.', 'mvb')
+				));
+				return;
+			}
 
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mvb' ) ) );
-		}
+			// Make sure we're in the admin
+			if (!is_admin()) {
+				wp_send_json_error(array(
+					'message' => __('This action can only be performed in the admin area.', 'mvb')
+				));
+				return;
+			}
 
-		$result = MVB_IGDB_API::sync_platforms();
+			// Verify user capabilities
+			if (!current_user_can('manage_options')) {
+				wp_send_json_error(array(
+					'message' => __('You do not have permission to perform this action.', 'mvb')
+				));
+				return;
+			}
 
-		if ( is_wp_error( $result ) ) {
-			wp_send_json_error(
-				array(
-					'message' => $result->get_error_message(),
-				)
-			);
-		}
+			error_log('MVB: Starting platform sync process');
 
-		wp_send_json_success(
-			array(
+			$processed = 0;
+			$updated = 0;
+			$errors = array();
+
+			// Get all videogames
+			$games = get_posts(array(
+				'post_type' => 'videogame',
+				'posts_per_page' => -1,
+				'post_status' => 'publish',
+			));
+
+			error_log('MVB: Found ' . count($games) . ' games to process');
+
+			if (empty($games)) {
+				wp_send_json_success(array(
+					'message' => __('No videogames found to sync.', 'mvb'),
+					'details' => array(
+						'processed' => 0,
+						'updated' => 0,
+						'errors' => array()
+					)
+				));
+				return;
+			}
+
+			foreach ($games as $game) {
+				error_log('MVB: Processing game: ' . $game->post_title);
+				$processed++;
+				
+				try {
+					// Search for the game in IGDB by name
+					error_log('MVB: Searching IGDB for: ' . $game->post_title);
+					$search_results = MVB_IGDB_API::search_games($game->post_title, 1);
+					
+					if (is_wp_error($search_results)) {
+						error_log('MVB: Search error for ' . $game->post_title . ': ' . $search_results->get_error_message());
+						$errors[] = sprintf(
+							__('Failed to search for "%s": %s', 'mvb'),
+							$game->post_title,
+							$search_results->get_error_message()
+						);
+						continue;
+					}
+
+					if (empty($search_results)) {
+						error_log('MVB: No results found for: ' . $game->post_title);
+						$errors[] = sprintf(
+							__('No IGDB match found for "%s"', 'mvb'),
+							$game->post_title
+						);
+						continue;
+					}
+
+					// Get the first (best) match
+					$game_data = $search_results[0];
+					error_log('MVB: Found match for ' . $game->post_title . ': ' . print_r($game_data, true));
+					
+					if (empty($game_data)) {
+						error_log('MVB: Invalid data for: ' . $game->post_title);
+						$errors[] = sprintf(
+							__('Invalid data received for "%s"', 'mvb'),
+							$game->post_title
+						);
+						continue;
+					}
+
+					// Process platforms
+					error_log('MVB: Processing platforms for: ' . $game->post_title);
+					$process_result = MVB_IGDB_API::process_platforms($game->ID, $game_data);
+					if (is_wp_error($process_result)) {
+						error_log('MVB: Error processing platforms: ' . $process_result->get_error_message());
+						$errors[] = sprintf(
+							__('Error processing platforms for "%s": %s', 'mvb'),
+							$game->post_title,
+							$process_result->get_error_message()
+						);
+						continue;
+					}
+					$updated++;
+					error_log('MVB: Successfully processed: ' . $game->post_title);
+				} catch (Exception $e) {
+					error_log('MVB: Error processing ' . $game->post_title . ': ' . $e->getMessage());
+					$errors[] = sprintf(
+						__('Error processing platforms for "%s": %s', 'mvb'),
+						$game->post_title,
+						$e->getMessage()
+					);
+				}
+			}
+
+			error_log('MVB: Sync completed. Processed: ' . $processed . ', Updated: ' . $updated . ', Errors: ' . count($errors));
+
+			wp_send_json_success(array(
 				'message' => sprintf(
-					__( 'Platforms synced successfully! Created: %1$d, Updated: %2$d, Errors: %3$d', 'mvb' ),
-					$result['created'],
-					$result['updated'],
-					count( $result['errors'] )
+					__('Sync completed. Processed: %1$d, Updated: %2$d, Errors: %3$d', 'mvb'),
+					$processed,
+					$updated,
+					count($errors)
 				),
-				'details' => $result,
-			)
-		);
+				'details' => array(
+					'processed' => $processed,
+					'updated' => $updated,
+					'errors' => $errors
+				)
+			));
+
+		} catch (Exception $e) {
+			error_log('MVB: Fatal error in sync process: ' . $e->getMessage());
+			error_log('MVB: Stack trace: ' . $e->getTraceAsString());
+			wp_send_json_error(array(
+				'message' => sprintf(
+					__('A fatal error occurred: %s', 'mvb'),
+					$e->getMessage()
+				)
+			));
+		}
 	}
 
 	/**

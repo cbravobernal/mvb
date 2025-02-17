@@ -124,24 +124,42 @@ class MVB_IGDB_API {
 	}
 
 	/**
-	 * Search games
+	 * Search for games
 	 *
-	 * @param string $search Search term.
-	 * @param int    $limit Result limit.
-	 * @return array|WP_Error Search results or WP_Error on failure
+	 * @param string $query Search query.
+	 * @param int    $limit Number of results to return.
+	 * @return array|WP_Error Array of games on success, WP_Error on failure.
 	 */
-	public static function search_games( $search, $limit = 10 ) {
-		$query = 'search "' . esc_sql( $search ) . '";
-				 fields name, cover.url, first_release_date, summary,
-				 genres.name, rating, rating_count, involved_companies.*, 
-				 involved_companies.company.*;
-				 limit ' . absint( $limit ) . ';';
+	public static function search_games($query, $limit = 10) {
+		$access_token = self::get_access_token();
+		if (is_wp_error($access_token)) {
+			return $access_token;
+		}
 
-		error_log( 'IGDB Search Query: ' . $query );
-		$result = self::request( 'games', $query );
-		error_log( 'IGDB Search Response count: ' . count( $result ) );
+		$response = wp_remote_post(
+			'https://api.igdb.com/v4/games',
+			array(
+				'headers' => array(
+					'Client-ID' => get_option('mvb_igdb_client_id'),
+					'Authorization' => 'Bearer ' . $access_token,
+				),
+				'body' => 'search "' . $query . '"; 
+						  fields name,summary,first_release_date,cover.*,involved_companies.*,involved_companies.company.*,platforms.*; 
+						  limit ' . $limit . ';',
+			)
+		);
 
-		return $result;
+		if (is_wp_error($response)) {
+			return $response;
+		}
+
+		$body = json_decode(wp_remote_retrieve_body($response), true);
+
+		if (empty($body)) {
+			return array();
+		}
+
+		return $body;
 	}
 
 	/**
@@ -377,6 +395,79 @@ class MVB_IGDB_API {
 	}
 
 	/**
+	 * Process platforms for a game
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $game IGDB game data.
+	 * @return bool|WP_Error True on success, WP_Error on failure.
+	 */
+	public static function process_platforms($post_id, $game) {
+		error_log('=== Processing platforms for game ID: ' . $post_id . ' ===');
+		error_log('Game data: ' . print_r($game, true));
+		
+		if (empty($game['platforms'])) {
+			error_log('No platforms found');
+			return true;
+		}
+
+		try {
+			// First, let's clean up any existing numeric platform terms
+			$existing_terms = wp_get_object_terms($post_id, 'mvb_platform');
+			if (!is_wp_error($existing_terms)) {
+				foreach ($existing_terms as $term) {
+					if (is_numeric($term->name) || preg_match('/^\d+$/', $term->name)) {
+						error_log('Deleting numeric platform term: ' . $term->name);
+						wp_remove_object_terms($post_id, $term->term_id, 'mvb_platform');
+						wp_delete_term($term->term_id, 'mvb_platform');
+					}
+				}
+			}
+
+			foreach ($game['platforms'] as $platform) {
+				error_log('Processing platform: ' . print_r($platform, true));
+
+				// Skip if platform name is just a number or empty
+				if (empty($platform['name']) || 
+					is_numeric($platform['name']) || 
+					preg_match('/^\d+$/', $platform['name']) ||
+					trim($platform['name']) === ''
+				) {
+					error_log('Skipping invalid platform name: ' . ($platform['name'] ?? 'empty'));
+					continue;
+				}
+
+				// Make sure we have a slug
+				if (empty($platform['slug'])) {
+					$platform['slug'] = sanitize_title($platform['name']);
+				}
+
+				error_log('Adding/updating platform: ' . print_r($platform, true));
+				
+				$term_id = MVB_Taxonomies::add_or_update_platform($platform);
+
+				if (is_wp_error($term_id)) {
+					error_log('Error adding platform: ' . $term_id->get_error_message());
+					continue;
+				}
+
+				error_log('Successfully added/updated platform with term ID: ' . $term_id);
+
+				// Link platform to game
+				$link_result = MVB_Taxonomies::link_platform_to_game($post_id, $term_id);
+				if (is_wp_error($link_result)) {
+					error_log('Error linking platform: ' . $link_result->get_error_message());
+				} else {
+					error_log('Linked platform ' . $term_id . ' to game ' . $post_id);
+				}
+			}
+			return true;
+		} catch (Exception $e) {
+			error_log('Error processing platforms: ' . $e->getMessage());
+			return new WP_Error('platform_processing_error', $e->getMessage());
+		}
+	}
+
+	/**
 	 * Register game from IGDB
 	 */
 	public function register_game($igdb_id) {
@@ -468,7 +559,16 @@ class MVB_IGDB_API {
 			}
 
 			// Process companies
-			self::process_companies($post_id, $game_data);
+			$process_result = self::process_companies($post_id, $game_data);
+			if (is_wp_error($process_result)) {
+				error_log('Error processing companies: ' . $process_result->get_error_message());
+			}
+
+			// Process platforms
+			$process_result = self::process_platforms($post_id, $game_data);
+			if (is_wp_error($process_result)) {
+				error_log('Error processing platforms: ' . $process_result->get_error_message());
+			}
 
 			error_log( '=== Finished creating videogame post ===' );
 			return $post_id;

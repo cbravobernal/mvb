@@ -32,6 +32,10 @@ class MVB_Admin {
 		add_action( 'wp_ajax_mvb_sync_companies', array( __CLASS__, 'handle_sync_companies_ajax' ) );
 		add_action( 'wp_ajax_mvb_sync_platforms', array( __CLASS__, 'handle_sync_platforms_ajax' ) );
 		add_action( 'wp_ajax_mvb_test_igdb_connection', array( __CLASS__, 'test_igdb_connection' ) );
+
+		// Add filter to videogame list
+		add_action('restrict_manage_posts', array(__CLASS__, 'add_completion_year_filter'));
+		add_filter('parse_query', array(__CLASS__, 'handle_completion_year_filter'));
 	}
 
 	/**
@@ -690,5 +694,86 @@ class MVB_Admin {
 				)
 			));
 		}
+	}
+
+	/**
+	 * Add completion year filter dropdown
+	 *
+	 * @param string $post_type Current post type.
+	 */
+	public static function add_completion_year_filter($post_type) {
+		if ('videogame' !== $post_type) {
+			return;
+		}
+
+		$current_year = isset($_GET['completion_year']) ? $_GET['completion_year'] : '';
+
+		// Get all completion years from the database
+		global $wpdb;
+		$years = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT SUBSTRING(meta_value, 1, 4) as year
+				FROM {$wpdb->postmeta}
+				WHERE meta_key = %s
+				AND meta_value IS NOT NULL
+				AND meta_value != ''
+				ORDER BY year DESC",
+				'videogame_completion_date'
+			)
+		);
+
+		error_log('MVB: Found completion years: ' . print_r($years, true));
+
+		if (empty($years)) {
+			return;
+		}
+
+		?>
+		<select name="completion_year">
+			<option value=""><?php esc_html_e('All Completion Years', 'mvb'); ?></option>
+			<?php
+			foreach ($years as $year) {
+				printf(
+					'<option value="%s" %s>%s</option>',
+					esc_attr($year),
+					selected($year, $current_year, false),
+					esc_html($year)
+				);
+			}
+			?>
+		</select>
+		<?php
+	}
+
+	/**
+	 * Handle completion year filter
+	 *
+	 * @param WP_Query $query Current query.
+	 */
+	public static function handle_completion_year_filter($query) {
+		global $pagenow;
+
+		if (!is_admin() || 
+			'edit.php' !== $pagenow || 
+			!$query->is_main_query() || 
+			empty($_GET['completion_year']) || 
+			'videogame' !== $query->get('post_type')
+		) {
+			return;
+		}
+
+		$year = sanitize_text_field($_GET['completion_year']);
+		error_log('MVB: Filtering by year: ' . $year);
+
+		// Use LIKE to match the year prefix
+		$query->set('meta_query', array(
+			array(
+				'key' => 'videogame_completion_date',
+				'value' => $year . '%',
+				'compare' => 'LIKE'
+			)
+		));
+
+		error_log('MVB: Meta query: ' . print_r($query->get('meta_query'), true));
 	}
 }

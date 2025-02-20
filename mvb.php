@@ -141,10 +141,19 @@ class MVB {
 				'backlog'  => __( 'Backlog', 'mvb' ),
 				'wishlist' => __( 'Wishlist', 'mvb' ),
 			);
-			echo esc_html( $status_labels[ $status ] ?? $status );
+			// Add data attribute with raw value
+			printf(
+				'<span class="videogame-status" data-status="%s">%s</span>',
+				esc_attr( $status ),
+				esc_html( $status_labels[ $status ] ?? $status )
+			);
 		} elseif ( $column === 'videogame_completion_date' ) {
 			$completion_date = get_post_meta( $post_id, 'videogame_completion_date', true );
-			echo esc_html( $completion_date );
+			printf(
+				'<span class="videogame-completion-date" data-date="%s">%s</span>',
+				esc_attr( $completion_date ),
+				esc_html( $completion_date )
+			);
 		}
 	}
 
@@ -152,6 +161,7 @@ class MVB {
 	 * Add quick edit field
 	 */
 	public static function add_quick_edit_field( $column_name, $post_type ) {
+
 		if ( $post_type !== 'videogame' || $column_name !== 'videogame_status' ) {
 			return;
 		}
@@ -223,23 +233,31 @@ class MVB {
 		if ( $screen->post_type !== 'videogame' ) {
 			return;
 		}
+		// Don't load on post edit action
+		if ( isset( $_GET['action'] ) && $_GET['action'] === 'edit' ) {
+			return;
+		}
 		?>
 		<script type="text/javascript">
 		jQuery(function($) {
-			var $wp_inline_edit = inlineEditPost.edit;
+			var wp_inline_edit = inlineEditPost.edit;
 			inlineEditPost.edit = function(id) {
-				$wp_inline_edit.apply(this, arguments);
+				wp_inline_edit.apply(this, arguments);
 				var post_id = 0;
 				if (typeof(id) == 'object') {
 					post_id = parseInt(this.getId(id));
 				}
 				if (post_id > 0) {
 					var $row = $('#post-' + post_id);
-					var status = $row.find('.column-videogame_status').text();
-					var completion_date = $row.find('.column-videogame_completion_date').text();
+					var $editRow = $('#edit-' + post_id);
 					
-					$('select[name="videogame_status"]').val(status);
-					$('input[name="videogame_completion_date"]').val(completion_date);
+					// Get values from data attributes
+					var status = $row.find('.videogame-status').data('status');
+					var completionDate = $row.find('.videogame-completion-date').data('date');
+					
+					// Set values in the edit form
+					$editRow.find('select[name="videogame_status"]').val(status);
+					$editRow.find('input[name="videogame_completion_date"]').val(completionDate);
 				}
 			};
 		});

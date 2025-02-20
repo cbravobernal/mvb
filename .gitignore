@@ -5,6 +5,7 @@
 *.bak
 *.swp
 *.swo
+.wp-env.override.json
 
 # Environment files
 .env

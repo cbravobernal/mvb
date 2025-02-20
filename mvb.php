@@ -51,24 +51,6 @@ class MVB {
 		// Load text domain
 		add_action( 'plugins_loaded', array( __CLASS__, 'load_textdomain' ) );
 
-		wp_register_script_module(
-			'@mvb/main',
-			plugins_url( 'assets/js/main.js', __FILE__ ),
-			array(
-				'@wordpress/interactivity',
-			),
-			MVB_VERSION
-		);
-
-		add_action(
-			'admin_enqueue_scripts',
-			function () {
-				if ( isset( $_GET['page'] ) && $_GET['page'] === 'mvb-settings' ) {
-					wp_enqueue_script_module( '@mvb/main' );
-				}
-			}
-		);
-
 		// Add quick edit functionality
 		add_action( 'quick_edit_custom_box', array( __CLASS__, 'add_quick_edit_field' ), 10, 2 );
 		add_action( 'save_post', array( __CLASS__, 'save_quick_edit_field' ), 10, 2 );

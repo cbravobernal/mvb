@@ -2,6 +2,7 @@
     'use strict';
 
     $(document).ready(function() {
+
         $('#mvb-test-connection').on('click', function() {
             const $button = $(this);
             const $result = $('#mvb-connection-result');

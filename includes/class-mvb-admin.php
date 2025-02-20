@@ -136,7 +136,14 @@ class MVB_Admin {
 	 * @param string $hook The current admin page.
 	 */
 	public static function enqueue_admin_scripts( $hook ) {
+		$screen = get_current_screen();
 
+		// Only load on videogame post type list screen
+		if ( $screen && 'edit.php' === $hook && 'videogame' === $screen->post_type ) {
+			wp_enqueue_script( 'inline-edit-post' );
+		}
+
+		// Load on settings and add game pages
 		if ( 'settings_page_mvb-settings' === $hook || 'videogame_page_mvb-add-game' === $hook ) {
 			wp_enqueue_style(
 				'mvb-admin',
@@ -148,12 +155,11 @@ class MVB_Admin {
 			wp_enqueue_script(
 				'mvb-admin',
 				MVB_PLUGIN_URL . 'assets/js/admin.js',
-				array( 'jquery' ),
+				array( 'jquery', 'inline-edit-post' ),
 				MVB_VERSION,
 				true
 			);
 
-			// Create a single nonce for all AJAX operations
 			$ajax_nonce = wp_create_nonce( 'mvb_ajax_nonce' );
 
 			wp_localize_script(

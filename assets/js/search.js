@@ -52,43 +52,7 @@
             });
         }
 
-        function renderGameCard(game) {
-            const coverUrl = game.cover ? 
-                game.cover.url.replace('t_thumb', 't_cover_big') : 
-                'default-cover.jpg';
-            
-            const gameExists = game.exists ? 
-                `<div class="notice notice-info">
-                    <a href="${adminUrl}post.php?post=${game.existing_id}&action=edit">
-                        ${__('Game already exists', 'mvb')}
-                    </a>
-                </div>` : 
-                `<button type="button" class="button add-game" data-game='${JSON.stringify(game)}'>
-                    ${__('Add Game', 'mvb')}
-                </button>`;
-
-            return `
-                <div class="mvb-game-card">
-                    <img class="mvb-game-cover" 
-                        src="${coverUrl}" 
-                        alt="${game.name}"
-                    >
-                    <div class="mvb-game-info">
-                        <h3 class="mvb-game-title">${game.name}</h3>
-                        ${game.release_date ? 
-                            `<div class="mvb-game-meta">${game.release_date}</div>` : 
-                            ''
-                        }
-                        ${game.summary ? 
-                            `<div class="mvb-game-meta">${game.summary.substring(0, 100)}...</div>` : 
-                            ''
-                        }
-                        ${gameExists}
-                    </div>
-                </div>
-            `;
-        }
-
+     
         function displayResults(games) {
             if (!games.length) {
                 $results.html('<div class="mvb-error">' + wp.i18n.__('No games found', 'mvb') + '</div>');

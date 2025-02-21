@@ -236,7 +236,7 @@ class MVB_IGDB_API {
 			wp_send_json_error( array( 'message' => __( 'Please enter a search term', 'mvb' ) ) );
 		}
 
-		$results = self::search_games( $search, 5 );
+		$results = self::search_games( $search, 15 );
 
 		if ( is_wp_error( $results ) ) {
 			wp_send_json_error( array( 'message' => $results->get_error_message() ) );

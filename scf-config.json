@@ -30,35 +30,6 @@
                 "preview_size": "medium"
             },
             {
-                "key": "field_67aa118d081c9",
-                "label": "Status",
-                "name": "videogame_status",
-                "aria-label": "",
-                "type": "select",
-                "instructions": "",
-                "required": 0,
-                "conditional_logic": 0,
-                "wrapper": {
-                    "width": "",
-                    "class": "",
-                    "id": ""
-                },
-                "choices": {
-                    "finished": "Finished",
-                    "playing": "Playing",
-                    "backlog": "Backlog",
-                    "wishlist": "Wishlist"
-                },
-                "default_value": "backlog",
-                "return_format": "value",
-                "multiple": 0,
-                "allow_null": 0,
-                "allow_in_bindings": 1,
-                "ui": 0,
-                "ajax": 0,
-                "placeholder": ""
-            },
-            {
                 "key": "field_67aa11e2081ca",
                 "label": "Release Date",
                 "name": "videogame_release_date",
@@ -72,8 +43,8 @@
                     "class": "",
                     "id": ""
                 },
-                "display_format": "d\/m\/Y",
-                "return_format": "d\/m\/Y",
+                "display_format": "F j, Y",
+                "return_format": "F j, Y",
                 "first_day": 1,
                 "allow_in_bindings": 1
             },
@@ -107,8 +78,8 @@
             ]
         ],
         "menu_order": 0,
-        "position": "normal",
-        "style": "default",
+        "position": "side",
+        "style": "seamless",
         "label_placement": "top",
         "instruction_placement": "label",
         "hide_on_screen": "",

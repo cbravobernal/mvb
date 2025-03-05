@@ -16,8 +16,15 @@ class MVB_Taxonomies {
 	 * Initialize taxonomies
 	 */
 	public static function init() {
-		// Register taxonomies after post types are registered (default priority is 10)
-		add_action( 'init', array( __CLASS__, 'register_taxonomies' ), 11 );
+		// Register taxonomies
+		add_action( 'init', array( __CLASS__, 'register_taxonomies' ) );
+		add_action( 'init', array( __CLASS__, 'register_game_status_taxonomy' ) );
+
+		// Add taxonomy fields
+		add_action( 'mvb_game_status_add_form_fields', array( __CLASS__, 'add_game_status_fields' ) );
+		add_action( 'mvb_game_status_edit_form_fields', array( __CLASS__, 'edit_game_status_fields' ) );
+		add_action( 'created_mvb_game_status', array( __CLASS__, 'save_game_status_fields' ) );
+		add_action( 'edited_mvb_game_status', array( __CLASS__, 'save_game_status_fields' ) );
 	}
 
 	/**
@@ -80,7 +87,48 @@ class MVB_Taxonomies {
 			)
 		);
 
+		// Register Game Status Taxonomy
+		self::register_game_status_taxonomy();
+
 		error_log( 'Register taxonomy result: ' . print_r( $result, true ) );
+	}
+
+	/**
+	 * Register game status taxonomy
+	 */
+	public static function register_game_status_taxonomy() {
+		$labels = array(
+			'name'                       => _x( 'Game Statuses', 'taxonomy general name', 'mvb' ),
+			'singular_name'              => _x( 'Game Status', 'taxonomy singular name', 'mvb' ),
+			'search_items'               => __( 'Search Game Statuses', 'mvb' ),
+			'popular_items'              => __( 'Popular Game Statuses', 'mvb' ),
+			'all_items'                  => __( 'All Game Statuses', 'mvb' ),
+			'parent_item'                => __( 'Parent Game Status', 'mvb' ),
+			'parent_item_colon'          => __( 'Parent Game Status:', 'mvb' ),
+			'edit_item'                  => __( 'Edit Game Status', 'mvb' ),
+			'update_item'                => __( 'Update Game Status', 'mvb' ),
+			'add_new_item'               => __( 'Add New Game Status', 'mvb' ),
+			'new_item_name'              => __( 'New Game Status Name', 'mvb' ),
+			'separate_items_with_commas' => __( 'Separate game statuses with commas', 'mvb' ),
+			'add_or_remove_items'        => __( 'Add or remove game statuses', 'mvb' ),
+			'choose_from_most_used'      => __( 'Choose from the most used game statuses', 'mvb' ),
+			'menu_name'                  => __( 'Game Statuses', 'mvb' ),
+		);
+
+		$args = array(
+			'labels'            => $labels,
+			'hierarchical'      => true,
+			'public'            => true,
+			'show_in_nav_menus' => true,
+			'show_ui'           => true,
+			'show_admin_column' => true,
+			'query_var'         => true,
+			'rewrite'           => array( 'slug' => 'game-status' ),
+			'show_in_rest'      => true,
+			'rest_base'         => 'game-status',
+		);
+
+		register_taxonomy( 'mvb_game_status', 'videogame', $args );
 	}
 
 	/**
@@ -248,5 +296,52 @@ class MVB_Taxonomies {
 	 */
 	public static function link_platform_to_game( $post_id, $term_id ) {
 		return wp_set_object_terms( $post_id, $term_id, 'mvb_platform', true );
+	}
+
+	/**
+	 * Add color field to game status taxonomy
+	 */
+	public static function add_game_status_fields() {
+		?>
+		<div class="form-field term-color-wrap">
+			<label for="status-color"><?php esc_html_e( 'Status Color', 'mvb' ); ?></label>
+			<input type="color" name="status_color" id="status-color" value="#0073aa" />
+			<p><?php esc_html_e( 'Choose a color for this status', 'mvb' ); ?></p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Edit color field for game status taxonomy
+	 *
+	 * @param WP_Term $term The term object.
+	 */
+	public static function edit_game_status_fields( $term ) {
+		$color = get_term_meta( $term->term_id, 'status_color', true );
+		$color = $color ? $color : '#0073aa';
+		?>
+		<tr class="form-field term-color-wrap">
+			<th scope="row"><label for="status-color"><?php esc_html_e( 'Status Color', 'mvb' ); ?></label></th>
+			<td>
+				<input type="color" name="status_color" id="status-color" value="<?php echo esc_attr( $color ); ?>" />
+				<p class="description"><?php esc_html_e( 'Choose a color for this status', 'mvb' ); ?></p>
+			</td>
+		</tr>
+		<?php
+	}
+
+	/**
+	 * Save game status fields
+	 *
+	 * @param int $term_id The term ID.
+	 */
+	public static function save_game_status_fields( $term_id ) {
+		if ( isset( $_POST['status_color'] ) ) {
+			update_term_meta(
+				$term_id,
+				'status_color',
+				sanitize_hex_color( $_POST['status_color'] )
+			);
+		}
 	}
 }

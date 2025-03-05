@@ -3,7 +3,7 @@
     padding: 20px;
     background: #fff;
     border: 1px solid #ccd0d4;
-    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
 }
 
 .mvb-test-connection h2 {
@@ -47,12 +47,12 @@
     overflow: hidden;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .mvb-game-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
 }
 
 .mvb-game-card::before {
@@ -79,12 +79,10 @@
     padding: 1.5rem;
     color: #fff;
     z-index: 2;
-    background: linear-gradient(
-        to top,
-        rgba(0,0,0,0.98) 0%,
-        rgba(0,0,0,0.9) 60%,
-        transparent 100%
-    );
+    background: linear-gradient(to top,
+            rgba(0, 0, 0, 0.98) 0%,
+            rgba(0, 0, 0, 0.9) 60%,
+            transparent 100%);
     transform: translateY(100%);
     transition: transform 0.3s ease;
     text-align: left;
@@ -98,7 +96,7 @@
     font-size: 1.2rem;
     font-weight: bold;
     margin: 0 0 0.5rem;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -233,8 +231,108 @@
     .mvb-search-results {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
+
     .mvb-search-section {
         margin: 1rem;
         padding: 1rem;
     }
+}
+
+/* Sortable columns */
+.widefat .column-videogame_status {
+    width: 10%;
+}
+
+.videogame-status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 500;
+}
+
+.videogame-status[data-status="playing"] {
+    background-color: #e5f6fd;
+    color: #0288d1;
+}
+
+.videogame-status[data-status="finished"] {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.videogame-status[data-status="backlog"] {
+    background-color: #fff3e0;
+    color: #ef6c00;
+}
+
+.videogame-status[data-status="wishlist"] {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+}
+
+/* Sortable column header */
+.manage-column.column-videogame_status.sortable a {
+    display: inline-block;
+    padding-left: 0;
+}
+
+.manage-column.column-videogame_status.sortable a:before {
+    content: "\f177";
+    font-family: dashicons;
+    display: inline-block;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+/* Status badges */
+.mvb-status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 500;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+
+.mvb-no-status {
+    color: #999;
+    font-style: italic;
+}
+
+/* Status filter dropdown styling */
+.mvb-status-filter {
+    margin: 5px 0;
+}
+
+.mvb-status-filter select {
+    max-width: 200px;
+}
+
+/* Migration progress bar */
+.mvb-progress-bar {
+    height: 20px;
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    margin: 10px 0;
+    overflow: hidden;
+}
+
+.mvb-progress-bar-inner {
+    height: 100%;
+    background-color: #0073aa;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.mvb-progress-status {
+    font-style: italic;
+    margin-bottom: 15px;
+}
+
+#mvb-migration-result {
+    margin-top: 20px;
 }

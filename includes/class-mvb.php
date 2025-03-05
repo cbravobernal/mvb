@@ -88,7 +88,6 @@ class MVB {
 	 * @return array Modified array of sortable columns
 	 */
 	public static function make_columns_sortable( $columns ) {
-		$columns['videogame_status']          = 'videogame_status';
 		$columns['videogame_completion_date'] = 'videogame_completion_date';
 		return $columns;
 	}
@@ -105,39 +104,9 @@ class MVB {
 
 		$orderby = $query->get( 'orderby' );
 
-		if ( 'videogame_status' === $orderby ) {
-			$query->set( 'meta_key', 'videogame_status' );
+		if ( 'videogame_completion_date' === $orderby ) {
+			$query->set( 'meta_key', 'videogame_completion_date' );
 			$query->set( 'orderby', 'meta_value' );
-
-			// Define custom status order
-			$meta_query = array(
-				'relation' => 'OR',
-				array(
-					'key'     => 'videogame_status',
-					'value'   => 'playing',
-					'compare' => '=',
-					'order'   => 1,
-				),
-				array(
-					'key'     => 'videogame_status',
-					'value'   => 'finished',
-					'compare' => '=',
-					'order'   => 2,
-				),
-				array(
-					'key'     => 'videogame_status',
-					'value'   => 'backlog',
-					'compare' => '=',
-					'order'   => 3,
-				),
-				array(
-					'key'     => 'videogame_status',
-					'value'   => 'wishlist',
-					'compare' => '=',
-					'order'   => 4,
-				),
-			);
-			$query->set( 'meta_query', $meta_query );
 		}
 	}
 
@@ -148,27 +117,9 @@ class MVB {
 	 * @param int    $post_id Post ID.
 	 */
 	public static function display_videogame_status_column( $column, $post_id ) {
-		if ( 'videogame_status' === $column ) {
-			$status        = get_post_meta( $post_id, 'videogame_status', true );
-			$status_labels = array(
-				'finished' => __( 'Finished', 'mvb' ),
-				'playing'  => __( 'Playing', 'mvb' ),
-				'backlog'  => __( 'Backlog', 'mvb' ),
-				'wishlist' => __( 'Wishlist', 'mvb' ),
-			);
-			// Add data attribute with raw value.
-			printf(
-				'<span class="videogame-status" data-status="%s">%s</span>',
-				esc_attr( $status ),
-				esc_html( $status_labels[ $status ] ?? $status )
-			);
-		} elseif ( 'videogame_completion_date' === $column ) {
+		if ( 'videogame_completion_date' === $column ) {
 			$completion_date = get_post_meta( $post_id, 'videogame_completion_date', true );
-			printf(
-				'<span class="videogame-completion-date" data-date="%s">%s</span>',
-				esc_attr( $completion_date ),
-				esc_html( $completion_date )
-			);
+			echo esc_html( $completion_date );
 		}
 	}
 
@@ -195,7 +146,7 @@ class MVB {
 	}
 
 	/**
-	 * Create default game statuses
+	 * Create default Game Status
 	 */
 	public static function create_default_game_statuses() {
 		$default_statuses = array(
@@ -258,30 +209,6 @@ class MVB {
 		<fieldset class="inline-edit-col-right">
 			<div class="inline-edit-col">
 				<label class="inline-edit-group">
-					<span class="title"><?php esc_html_e( 'Game Status', 'mvb' ); ?></span>
-					<select name="tax_input[mvb_game_status][]">
-						<option value=""><?php esc_html_e( 'Select Status', 'mvb' ); ?></option>
-						<?php
-						$terms = get_terms(
-							array(
-								'taxonomy'   => 'mvb_game_status',
-								'hide_empty' => false,
-								'orderby'    => 'meta_value_num',
-								'meta_key'   => 'status_order',
-							)
-						);
-
-						foreach ( $terms as $term ) {
-							printf(
-								'<option value="%s">%s</option>',
-								esc_attr( $term->term_id ),
-								esc_html( $term->name )
-							);
-						}
-						?>
-					</select>
-				</label>
-				<label class="inline-edit-group">
 					<span class="title"><?php esc_html_e( 'Completion Date', 'mvb' ); ?></span>
 					<input type="date" name="videogame_completion_date" />
 				</label>
@@ -296,40 +223,40 @@ class MVB {
 	public static function quick_edit_javascript() {
 		$screen = get_current_screen();
 
-		// Only load on videogame post type
-		if ( $screen->post_type !== 'videogame' ) {
+		// Only load on videogame post type.
+		if ( 'videogame' !== $screen->post_type ) {
 			return;
 		}
 
-		// Only load on the edit.php page (list view), not on post edit screens or other pages
-		if ( $screen->base !== 'edit' ) {
+		// Only load on the edit.php page (list view), not on post edit screens or other pages.
+		if ( 'edit' !== $screen->base ) {
 			return;
 		}
 
-		// Don't load on the migration page
-		if ( isset( $_GET['page'] ) && $_GET['page'] === 'mvb-migrate-statuses' ) {
+		// Don't load on the migration page.
+		if ( isset( $_GET['page'] ) && 'mvb-migrate-statuses' === $_GET['page'] ) {
 			return;
 		}
 
-		// Don't load on post edit action
-		if ( isset( $_GET['action'] ) && $_GET['action'] === 'edit' ) {
+		// Don't load on post edit action.
+		if ( isset( $_GET['action'] ) && 'edit' === $_GET['action'] ) {
 			return;
 		}
 		?>
 		<script type="text/javascript">
 		jQuery(function($) {
-			// Check if inlineEditPost is defined
+			// Check if inlineEditPost is defined.
 			if (typeof inlineEditPost === 'undefined') {
 				console.error('inlineEditPost is not defined. Quick edit functionality may not work properly.');
 				return;
 			}
 			
-			// Store the original edit function
+			// Store the original edit function.
 			var wp_inline_edit = inlineEditPost.edit;
 			
-			// Override the edit function
+			// Override the edit function.
 			inlineEditPost.edit = function(id) {
-				// Call the original edit function
+				// Call the original edit function.
 				wp_inline_edit.apply(this, arguments);
 				
 				var post_id = 0;
@@ -341,14 +268,10 @@ class MVB {
 					var $row = $('#post-' + post_id);
 					var $editRow = $('#edit-' + post_id);
 					
-					// Get the status term ID
-					var termId = $row.find('.column-taxonomy-mvb_game_status .mvb-status-badge').data('term-id');
+					// Get the completion date.
 					var completionDate = $row.find('.column-videogame_completion_date').text().trim();
 					
-					// Set values in the edit form
-					if (termId) {
-						$editRow.find('select[name="tax_input[mvb_game_status][]"]').val(termId);
-					}
+					// Set value in the edit form.
 					$editRow.find('input[name="videogame_completion_date"]').val(completionDate);
 				}
 			};
@@ -358,7 +281,7 @@ class MVB {
 	}
 
 	/**
-	 * Migrate game statuses from post meta to taxonomy
+	 * Migrate Game Status from post meta to taxonomy
 	 *
 	 * @param int $batch_size Number of games to process in a batch.
 	 * @param int $offset Starting offset for batch processing.
@@ -552,8 +475,7 @@ class MVB {
 		// Remove date column.
 		unset( $columns['date'] );
 
-		// Add our custom columns.
-		$columns['videogame_status']          = __( 'Status', 'mvb' );
+		// Add our custom column.
 		$columns['videogame_completion_date'] = __( 'Completion Date', 'mvb' );
 		return $columns;
 	}
@@ -581,15 +503,6 @@ class MVB {
 			return $post_id;
 		}
 
-		// Save status if set.
-		if ( isset( $_POST['videogame_status'] ) ) {
-			update_post_meta(
-				$post_id,
-				'videogame_status',
-				sanitize_text_field( wp_unslash( $_POST['videogame_status'] ) )
-			);
-		}
-
 		// Save completion date if set.
 		if ( isset( $_POST['videogame_completion_date'] ) ) {
 			update_post_meta(
@@ -613,7 +526,7 @@ class MVB {
 			?>
 			<div class="notice notice-info is-dismissible">
 				<p>
-					<?php esc_html_e( 'My Videogames Backlog plugin has been updated with a new status system. Please migrate your existing game statuses.', 'mvb' ); ?>
+					<?php esc_html_e( 'My Videogames Backlog plugin has been updated with a new status system. Please migrate your existing Game Status.', 'mvb' ); ?>
 					<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=videogame&page=mvb-migrate-statuses' ) ); ?>" class="button button-primary">
 						<?php esc_html_e( 'Migrate Now', 'mvb' ); ?>
 					</a>

@@ -1,5 +1,5 @@
 /**
- * Migration script for game statuses
+ * Migration script for Game Status
  */
 jQuery(document).ready(function ($) {
   // Elements

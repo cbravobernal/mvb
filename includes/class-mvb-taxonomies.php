@@ -98,21 +98,21 @@ class MVB_Taxonomies {
 	 */
 	public static function register_game_status_taxonomy() {
 		$labels = array(
-			'name'                       => _x( 'Game Statuses', 'taxonomy general name', 'mvb' ),
+			'name'                       => _x( 'Game Status', 'taxonomy general name', 'mvb' ),
 			'singular_name'              => _x( 'Game Status', 'taxonomy singular name', 'mvb' ),
-			'search_items'               => __( 'Search Game Statuses', 'mvb' ),
-			'popular_items'              => __( 'Popular Game Statuses', 'mvb' ),
-			'all_items'                  => __( 'All Game Statuses', 'mvb' ),
+			'search_items'               => __( 'Search Game Status', 'mvb' ),
+			'popular_items'              => __( 'Popular Game Status', 'mvb' ),
+			'all_items'                  => __( 'All Game Status', 'mvb' ),
 			'parent_item'                => __( 'Parent Game Status', 'mvb' ),
 			'parent_item_colon'          => __( 'Parent Game Status:', 'mvb' ),
 			'edit_item'                  => __( 'Edit Game Status', 'mvb' ),
 			'update_item'                => __( 'Update Game Status', 'mvb' ),
 			'add_new_item'               => __( 'Add New Game Status', 'mvb' ),
 			'new_item_name'              => __( 'New Game Status Name', 'mvb' ),
-			'separate_items_with_commas' => __( 'Separate game statuses with commas', 'mvb' ),
-			'add_or_remove_items'        => __( 'Add or remove game statuses', 'mvb' ),
-			'choose_from_most_used'      => __( 'Choose from the most used game statuses', 'mvb' ),
-			'menu_name'                  => __( 'Game Statuses', 'mvb' ),
+			'separate_items_with_commas' => __( 'Separate Game Status with commas', 'mvb' ),
+			'add_or_remove_items'        => __( 'Add or remove Game Status', 'mvb' ),
+			'choose_from_most_used'      => __( 'Choose from the most used Game Status', 'mvb' ),
+			'menu_name'                  => __( 'Game Status', 'mvb' ),
 		);
 
 		$args = array(

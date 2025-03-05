@@ -37,7 +37,6 @@ class MVB_Admin {
 		// Add filters to videogame list
 		add_action( 'restrict_manage_posts', array( __CLASS__, 'add_completion_year_filter' ) );
 		add_action( 'restrict_manage_posts', array( __CLASS__, 'add_platform_filter' ) );
-		add_action( 'restrict_manage_posts', array( __CLASS__, 'add_game_status_filter' ) );
 		add_filter( 'parse_query', array( __CLASS__, 'handle_completion_year_filter' ) );
 		add_filter( 'parse_query', array( __CLASS__, 'handle_platform_filter' ) );
 
@@ -71,7 +70,7 @@ class MVB_Admin {
 		// Add migration page
 		add_submenu_page(
 			'edit.php?post_type=videogame',  // Parent slug
-			__( 'Migrate Game Statuses', 'mvb' ), // Page title
+			__( 'Migrate Game Status', 'mvb' ), // Page title
 			__( 'Migrate Statuses', 'mvb' ), // Menu title
 			'manage_options',                // Capability
 			'mvb-migrate-statuses',          // Menu slug
@@ -909,51 +908,6 @@ class MVB_Admin {
 	}
 
 	/**
-	 * Add game status filter dropdown
-	 *
-	 * @param string $post_type Current post type.
-	 */
-	public static function add_game_status_filter( $post_type ) {
-		if ( 'videogame' !== $post_type ) {
-			return;
-		}
-
-		$taxonomy = 'mvb_game_status';
-		$tax_obj  = get_taxonomy( $taxonomy );
-		$current  = isset( $_GET[ $taxonomy ] ) ? $_GET[ $taxonomy ] : '';
-
-		$terms = get_terms(
-			array(
-				'taxonomy'   => $taxonomy,
-				'hide_empty' => true,
-				'orderby'    => 'meta_value_num',
-				'meta_key'   => 'status_order',
-			)
-		);
-
-		if ( empty( $terms ) ) {
-			return;
-		}
-
-		echo '<div class="mvb-status-filter">';
-		echo '<select name="' . esc_attr( $taxonomy ) . '" id="' . esc_attr( $taxonomy ) . '" class="postform">';
-		echo '<option value="">' . esc_html( $tax_obj->labels->all_items ) . '</option>';
-
-		foreach ( $terms as $term ) {
-			printf(
-				'<option value="%s" %s>%s (%d)</option>',
-				esc_attr( $term->slug ),
-				selected( $term->slug, $current, false ),
-				esc_html( $term->name ),
-				esc_html( $term->count )
-			);
-		}
-
-		echo '</select>';
-		echo '</div>';
-	}
-
-	/**
 	 * Remove months dropdown for videogames post type
 	 *
 	 * @param array        $months   Array of months.
@@ -1001,11 +955,11 @@ class MVB_Admin {
 
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Migrate Game Statuses', 'mvb' ); ?></h1>
+			<h1><?php esc_html_e( 'Migrate Game Status', 'mvb' ); ?></h1>
 			
 			<div class="card">
 				<h2><?php esc_html_e( 'Status Migration Tool', 'mvb' ); ?></h2>
-				<p><?php esc_html_e( 'This tool will migrate your existing game statuses from post meta to the new taxonomy system.', 'mvb' ); ?></p>
+				<p><?php esc_html_e( 'This tool will migrate your existing Game Status from post meta to the new taxonomy system.', 'mvb' ); ?></p>
 				<p><?php esc_html_e( 'This is useful if you have games that were created before the taxonomy system was implemented.', 'mvb' ); ?></p>
 				
 				<div id="mvb-migration-progress" style="display:none;">
@@ -1028,7 +982,7 @@ class MVB_Admin {
 	}
 
 	/**
-	 * Handle the AJAX request for migrating game statuses
+	 * Handle the AJAX request for migrating Game Status
 	 */
 	public static function handle_migration_ajax() {
 		// Verify nonce

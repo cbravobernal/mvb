@@ -42,8 +42,9 @@ class MVB {
 		add_filter( 'manage_edit-videogame_sortable_columns', array( __CLASS__, 'make_columns_sortable' ) );
 		add_action( 'pre_get_posts', array( __CLASS__, 'handle_custom_sorting' ) );
 
-		// Add admin notices.
-		add_action( 'admin_notices', array( __CLASS__, 'admin_notices' ) );
+		// Add status filter dropdown.
+		add_action( 'restrict_manage_posts', array( __CLASS__, 'add_game_status_filter' ) );
+		add_filter( 'parse_query', array( __CLASS__, 'filter_games_by_status' ) );
 
 		// Check for updates.
 		add_action( 'admin_init', array( __CLASS__, 'check_for_updates' ) );
@@ -69,6 +70,9 @@ class MVB {
 
 		// Create default statuses.
 		self::create_default_game_statuses();
+
+		// Create gamer role.
+		self::create_gamer_role();
 
 		// Flush rewrite rules.
 		flush_rewrite_rules();
@@ -141,7 +145,7 @@ class MVB {
 		// Calculate luminance
 		$luminance = ( 0.299 * $r + 0.587 * $g + 0.114 * $b ) / 255;
 
-		// Return black or white based on luminance
+		// Return black for bright colors, white for dark colors
 		return $luminance > 0.5 ? '#000000' : '#ffffff';
 	}
 
@@ -281,191 +285,6 @@ class MVB {
 	}
 
 	/**
-	 * Migrate Game Status from post meta to taxonomy
-	 *
-	 * @param int $batch_size Number of games to process in a batch.
-	 * @param int $offset Starting offset for batch processing.
-	 * @return array Migration statistics and processing info.
-	 */
-	public static function migrate_game_statuses( $batch_size = 5, $offset = 0 ) {
-		// Initialize stats array
-		$stats = array(
-			'total'          => 0,
-			'processed'      => 0,
-			'migrated'       => 0,
-			'skipped'        => 0,
-			'errors'         => 0,
-			'complete'       => false,
-			'next_offset'    => 0,
-			'error_messages' => array(),
-		);
-
-		// Log memory usage at start
-		$initial_memory = memory_get_usage( true ) / 1024 / 1024;
-		error_log( sprintf( 'MVB Migration: Starting batch. Initial memory: %.2f MB', $initial_memory ) );
-
-		try {
-			// Get total count first (for progress tracking)
-			$total_query    = new WP_Query(
-				array(
-					'post_type'      => 'videogame',
-					'posts_per_page' => -1,
-					'fields'         => 'ids',
-					'no_found_rows'  => false,
-				)
-			);
-			$stats['total'] = $total_query->found_posts;
-			wp_reset_postdata();
-
-			// Get batch of games to process
-			$games = get_posts(
-				array(
-					'post_type'      => 'videogame',
-					'posts_per_page' => $batch_size,
-					'offset'         => $offset,
-					'post_status'    => 'any',
-				)
-			);
-
-			$stats['processed']   = count( $games );
-			$stats['next_offset'] = $offset + $stats['processed'];
-
-			// Check if this is the last batch
-			$stats['complete'] = ( $stats['next_offset'] >= $stats['total'] );
-
-			// Process each game
-			foreach ( $games as $game ) {
-				try {
-					$status = get_post_meta( $game->ID, 'videogame_status', true );
-
-					if ( empty( $status ) ) {
-						++$stats['skipped'];
-						continue;
-					}
-
-					// Check if term exists
-					$term = get_term_by( 'slug', $status, 'mvb_game_status' );
-
-					if ( $term && ! is_wp_error( $term ) ) {
-						// Term exists, set it for the game
-						$result = wp_set_object_terms( $game->ID, $term->term_id, 'mvb_game_status' );
-
-						if ( ! is_wp_error( $result ) ) {
-							++$stats['migrated'];
-						} else {
-							++$stats['errors'];
-							$stats['error_messages'][] = sprintf(
-								'Error setting term for game #%d (%s): %s',
-								$game->ID,
-								$game->post_title,
-								$result->get_error_message()
-							);
-						}
-					} else {
-						// Term doesn't exist, create it
-						if ( ! term_exists( $status, 'mvb_game_status' ) ) {
-							$new_term = wp_insert_term(
-								ucfirst( $status ), // Capitalize the first letter
-								'mvb_game_status',
-								array(
-									'slug'        => $status,
-									'description' => sprintf( __( 'Custom status: %s', 'mvb' ), $status ),
-								)
-							);
-
-							if ( ! is_wp_error( $new_term ) ) {
-								// Set a default color
-								update_term_meta( $new_term['term_id'], 'status_color', '#666666' );
-
-								// Now assign the term
-								$result = wp_set_object_terms( $game->ID, $new_term['term_id'], 'mvb_game_status' );
-								if ( ! is_wp_error( $result ) ) {
-									++$stats['migrated'];
-								} else {
-									++$stats['errors'];
-									$stats['error_messages'][] = sprintf(
-										'Error setting new term for game #%d (%s): %s',
-										$game->ID,
-										$game->post_title,
-										$result->get_error_message()
-									);
-								}
-							} else {
-								++$stats['errors'];
-								$stats['error_messages'][] = sprintf(
-									'Error creating term for status "%s": %s',
-									$status,
-									$new_term->get_error_message()
-								);
-							}
-						} else {
-							// Term exists but couldn't be retrieved by get_term_by
-							// Try to get it again by term_exists
-							$existing_term = term_exists( $status, 'mvb_game_status' );
-							if ( is_array( $existing_term ) ) {
-								$result = wp_set_object_terms( $game->ID, $existing_term['term_id'], 'mvb_game_status' );
-								if ( ! is_wp_error( $result ) ) {
-									++$stats['migrated'];
-								} else {
-									++$stats['errors'];
-									$stats['error_messages'][] = sprintf(
-										'Error setting existing term for game #%d (%s): %s',
-										$game->ID,
-										$game->post_title,
-										$result->get_error_message()
-									);
-								}
-							} else {
-								++$stats['skipped'];
-								$stats['error_messages'][] = sprintf(
-									'Term exists but could not be retrieved for status "%s" on game #%d (%s)',
-									$status,
-									$game->ID,
-									$game->post_title
-								);
-							}
-						}
-					}
-
-					// Free memory
-					wp_cache_delete( $game->ID, 'posts' );
-					wp_cache_delete( $game->ID, 'post_meta' );
-
-				} catch ( Exception $e ) {
-					++$stats['errors'];
-					$stats['error_messages'][] = sprintf(
-						'Exception processing game #%d (%s): %s',
-						$game->ID,
-						$game->post_title,
-						$e->getMessage()
-					);
-
-					// Log the error
-					error_log( sprintf( 'MVB Migration Error (Game #%d): %s', $game->ID, $e->getMessage() ) );
-				}
-			}
-		} catch ( Exception $e ) {
-			// Catch any exceptions in the main process
-			++$stats['errors'];
-			$stats['error_messages'][] = 'Fatal error: ' . $e->getMessage();
-			error_log( 'MVB Migration Fatal Error: ' . $e->getMessage() );
-		}
-
-		// Add memory usage tracking
-		$stats['memory_usage'] = memory_get_usage( true ) / 1024 / 1024; // in MB
-		$memory_increase       = $stats['memory_usage'] - $initial_memory;
-		error_log(
-			sprintf(
-				'MVB Migration: Ending batch. Final memory: %.2f MB, Increase: %.2f MB',
-				$stats['memory_usage'],
-				$memory_increase
-			)
-		);
-
-		return $stats;
-	}
-
-	/**
 	 * Add videogame status column
 	 *
 	 * @param array $columns The columns array.
@@ -516,28 +335,7 @@ class MVB {
 	}
 
 	/**
-	 * Show admin notices
-	 */
-	public static function admin_notices() {
-		// Check if migration is needed.
-		$migration_needed = get_option( 'mvb_migration_needed', false );
-
-		if ( $migration_needed && current_user_can( 'manage_options' ) ) {
-			?>
-			<div class="notice notice-info is-dismissible">
-				<p>
-					<?php esc_html_e( 'My Videogames Backlog plugin has been updated with a new status system. Please migrate your existing Game Status.', 'mvb' ); ?>
-					<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=videogame&page=mvb-migrate-statuses' ) ); ?>" class="button button-primary">
-						<?php esc_html_e( 'Migrate Now', 'mvb' ); ?>
-					</a>
-				</p>
-			</div>
-			<?php
-		}
-	}
-
-	/**
-	 * Check for plugin updates
+	 * Check for plugin updates.
 	 */
 	public static function check_for_updates() {
 		$current_version = get_option( 'mvb_version', '0.0.0' );
@@ -545,11 +343,92 @@ class MVB {
 		if ( version_compare( $current_version, MVB_VERSION, '<' ) ) {
 			// Plugin was updated.
 			update_option( 'mvb_version', MVB_VERSION );
+		}
+	}
 
-			// If updating from a version before 1.1.0 (when taxonomy was introduced).
-			if ( version_compare( $current_version, '1.1.0', '<' ) ) {
-				update_option( 'mvb_migration_needed', true );
-			}
+	/**
+	 * Add status filter dropdown.
+	 */
+	public static function add_game_status_filter() {
+		global $pagenow, $typenow;
+
+		// Only add on the videogame post type list screen.
+		if ( 'edit.php' !== $pagenow || 'videogame' !== $typenow ) {
+			return;
+		}
+
+		// Get all game status terms.
+		$statuses = get_terms(
+			array(
+				'taxonomy'   => 'mvb_game_status',
+				'hide_empty' => false,
+			)
+		);
+
+		if ( empty( $statuses ) || is_wp_error( $statuses ) ) {
+			return;
+		}
+
+		$selected_status = isset( $_GET['mvb_game_status'] ) ? sanitize_text_field( wp_unslash( $_GET['mvb_game_status'] ) ) : '';
+		?>
+		<select name="mvb_game_status" class="mvb-status-filter">
+			<option value=""><?php esc_html_e( 'All statuses', 'mvb' ); ?></option>
+			<?php foreach ( $statuses as $status ) : ?>
+				<option value="<?php echo esc_attr( $status->slug ); ?>" <?php selected( $selected_status, $status->slug ); ?>>
+					<?php echo esc_html( $status->name ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<?php
+	}
+
+	/**
+	 * Filter games by status.
+	 *
+	 * @param WP_Query $query The query object.
+	 */
+	public static function filter_games_by_status( $query ) {
+		global $pagenow, $typenow;
+
+		// Only filter on the videogame post type list screen.
+		if ( ! is_admin() || 'edit.php' !== $pagenow || 'videogame' !== $typenow ) {
+			return;
+		}
+
+		// Check if our filter is set.
+		if ( ! isset( $_GET['mvb_game_status'] ) || empty( $_GET['mvb_game_status'] ) ) {
+			return;
+		}
+
+		// Apply the filter.
+		$status = sanitize_text_field( wp_unslash( $_GET['mvb_game_status'] ) );
+
+		$tax_query = array(
+			array(
+				'taxonomy' => 'mvb_game_status',
+				'field'    => 'slug',
+				'terms'    => $status,
+			),
+		);
+
+		$query->set( 'tax_query', $tax_query );
+	}
+
+	/**
+	 * Create the Gamer role.
+	 */
+	public static function create_gamer_role() {
+		// Only create the role if it doesn't exist.
+		if ( ! get_role( 'mvb_gamer' ) ) {
+			add_role(
+				'mvb_gamer',
+				__( 'Gamer', 'mvb' ),
+				array(
+					'read'                => true,
+					'edit_mvb_user_games' => true,
+					'view_mvb_games'      => true,
+				)
+			);
 		}
 	}
 }

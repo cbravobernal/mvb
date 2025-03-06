@@ -32,7 +32,6 @@ class MVB_Admin {
 		add_action( 'wp_ajax_mvb_sync_companies', array( __CLASS__, 'handle_sync_companies_ajax' ) );
 		add_action( 'wp_ajax_mvb_sync_platforms', array( __CLASS__, 'handle_sync_platforms_ajax' ) );
 		add_action( 'wp_ajax_mvb_test_igdb_connection', array( __CLASS__, 'test_igdb_connection' ) );
-		add_action( 'wp_ajax_mvb_migrate_statuses', array( __CLASS__, 'handle_migration_ajax' ) );
 
 		// Add filters to videogame list
 		add_action( 'restrict_manage_posts', array( __CLASS__, 'add_completion_year_filter' ) );
@@ -48,33 +47,14 @@ class MVB_Admin {
 	 * Add admin menu items
 	 */
 	public static function add_admin_menu() {
-		// Add settings page under Settings menu
-		add_options_page(
-			__( 'MVB Settings', 'mvb' ),
-			__( 'MVB', 'mvb' ),
-			'manage_options',
-			'mvb-settings',
-			array( __CLASS__, 'render_settings_page' )
-		);
-
-		// Add "Add with API" page under Videogames menu
+		// Add "Add Game" page
 		add_submenu_page(
 			'edit.php?post_type=videogame',  // Parent slug
-			__( 'Add with IGDB', 'mvb' ), // Page title
-			__( 'Add with IGDB', 'mvb' ), // Menu title
+			__( 'Add Game', 'mvb' ),         // Page title
+			__( 'Add Game', 'mvb' ),         // Menu title
 			'edit_posts',                     // Capability
 			'mvb-add-game',               // Menu slug
 			array( __CLASS__, 'render_add_game_page' ) // Callback function
-		);
-
-		// Add migration page
-		add_submenu_page(
-			'edit.php?post_type=videogame',  // Parent slug
-			__( 'Migrate Game Status', 'mvb' ), // Page title
-			__( 'Migrate Statuses', 'mvb' ), // Menu title
-			'manage_options',                // Capability
-			'mvb-migrate-statuses',          // Menu slug
-			array( __CLASS__, 'render_migration_page' ) // Callback function
 		);
 	}
 
@@ -908,155 +888,16 @@ class MVB_Admin {
 	}
 
 	/**
-	 * Remove months dropdown for videogames post type
+	 * Remove months dropdown from admin filters.
 	 *
-	 * @param array        $months   Array of months.
-	 * @param WP_Post_Type $post_type Post type object.
-	 * @return array Empty array for videogames, original array for other post types
+	 * @param array  $months   Array of month objects.
+	 * @param string $post_type Post type.
+	 * @return array Modified months array.
 	 */
 	public static function remove_months_dropdown( $months, $post_type ) {
 		if ( 'videogame' === $post_type ) {
 			return array();
 		}
 		return $months;
-	}
-
-	/**
-	 * Render migration page
-	 */
-	public static function render_migration_page() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
-		// Enqueue the script for AJAX migration
-		wp_enqueue_script(
-			'mvb-migration',
-			MVB_PLUGIN_URL . 'assets/js/migration.js',
-			array( 'jquery' ),
-			MVB_VERSION,
-			true
-		);
-
-		// Pass data to the script
-		wp_localize_script(
-			'mvb-migration',
-			'MVBMigration',
-			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'mvb_migrate_statuses' ),
-				'i18n'    => array(
-					'processing' => __( 'Processing... Please wait.', 'mvb' ),
-					'complete'   => __( 'Migration completed successfully!', 'mvb' ),
-					'error'      => __( 'An error occurred during migration.', 'mvb' ),
-				),
-			)
-		);
-
-		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'Migrate Game Status', 'mvb' ); ?></h1>
-			
-			<div class="card">
-				<h2><?php esc_html_e( 'Status Migration Tool', 'mvb' ); ?></h2>
-				<p><?php esc_html_e( 'This tool will migrate your existing Game Status from post meta to the new taxonomy system.', 'mvb' ); ?></p>
-				<p><?php esc_html_e( 'This is useful if you have games that were created before the taxonomy system was implemented.', 'mvb' ); ?></p>
-				
-				<div id="mvb-migration-progress" style="display:none;">
-					<div class="mvb-progress-bar">
-						<div class="mvb-progress-bar-inner" style="width: 0%;"></div>
-					</div>
-					<p class="mvb-progress-status"></p>
-				</div>
-				
-				<div id="mvb-migration-result" style="display:none;"></div>
-				
-				<p>
-					<button id="mvb-start-migration" class="button button-primary">
-						<?php esc_html_e( 'Start Migration', 'mvb' ); ?>
-					</button>
-				</p>
-			</div>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Handle the AJAX request for migrating Game Status
-	 */
-	public static function handle_migration_ajax() {
-		// Verify nonce
-		check_ajax_referer( 'mvb_migrate_statuses', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'You do not have permission to perform this action.', 'mvb' ),
-				)
-			);
-			return;
-		}
-
-		// Get batch parameters
-		$batch_size = isset( $_POST['batch_size'] ) ? intval( $_POST['batch_size'] ) : 5;
-		$offset     = isset( $_POST['offset'] ) ? intval( $_POST['offset'] ) : 0;
-
-		// Limit batch size to prevent timeouts
-		$batch_size = min( $batch_size, 10 );
-
-		// Set a longer time limit for this request
-		@set_time_limit( 300 ); // 5 minutes
-
-		// Increase memory limit if possible
-		@ini_set( 'memory_limit', '256M' );
-
-		// Disable output buffering
-		if ( ob_get_level() ) {
-			ob_end_clean();
-		}
-
-		// Log start of migration batch
-		error_log( sprintf( 'MVB Migration: Starting batch processing. Offset: %d, Batch size: %d', $offset, $batch_size ) );
-
-		try {
-			// Process the batch
-			$result = MVB::migrate_game_statuses( $batch_size, $offset );
-
-			// Log memory usage
-			error_log(
-				sprintf(
-					'MVB Migration: Processed batch %d-%d. Memory usage: %.2f MB',
-					$offset,
-					$offset + $batch_size - 1,
-					$result['memory_usage']
-				)
-			);
-
-			// Return the result
-			wp_send_json_success( $result );
-		} catch ( Exception $e ) {
-			error_log( 'MVB Migration Error: ' . $e->getMessage() );
-			wp_send_json_error(
-				array(
-					'message' => sprintf(
-						__( 'An error occurred during migration: %s', 'mvb' ),
-						$e->getMessage()
-					),
-					'offset'  => $offset,
-				)
-			);
-		} catch ( Error $e ) {
-			// Catch PHP 7+ errors
-			error_log( 'MVB Migration Fatal Error: ' . $e->getMessage() );
-			wp_send_json_error(
-				array(
-					'message' => sprintf(
-						__( 'A fatal error occurred during migration: %s', 'mvb' ),
-						$e->getMessage()
-					),
-					'offset'  => $offset,
-				)
-			);
-		}
 	}
 }

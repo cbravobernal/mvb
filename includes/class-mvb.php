@@ -417,18 +417,34 @@ class MVB {
 	/**
 	 * Create the Gamer role.
 	 */
-	public static function create_gamer_role() {
-		// Only create the role if it doesn't exist.
-		if ( ! get_role( 'mvb_gamer' ) ) {
-			add_role(
+	private static function create_gamer_role() {
+		// Get or create the gamer role.
+		$gamer = get_role( 'mvb_gamer' );
+		if ( null === $gamer ) {
+			$gamer = add_role(
 				'mvb_gamer',
 				__( 'Gamer', 'mvb' ),
 				array(
-					'read'                => true,
-					'edit_mvb_user_games' => true,
-					'view_mvb_games'      => true,
+					'read' => true,
+					'upload_files' => true, // Required for uploading game covers and media files!
+					'edit_mvb_game' => true,
+					'read_mvb_game' => true,
+					'delete_mvb_game' => true,
+					'edit_mvb_games' => true,
+					'publish_mvb_games' => true,
+					'mvb_manage_igdb_settings' => true, // Allow gamers to manage their own IGDB settings!
 				)
 			);
+		} else {
+			// Update existing role capabilities.
+			$gamer->add_cap( 'read' );
+			$gamer->add_cap( 'upload_files' );
+			$gamer->add_cap( 'edit_mvb_game' );
+			$gamer->add_cap( 'read_mvb_game' );
+			$gamer->add_cap( 'delete_mvb_game' );
+			$gamer->add_cap( 'edit_mvb_games' );
+			$gamer->add_cap( 'publish_mvb_games' );
+			$gamer->add_cap( 'mvb_manage_igdb_settings' );
 		}
 	}
 }

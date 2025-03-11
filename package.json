@@ -8,7 +8,8 @@
   "description": "Integrate block bindings in SCF",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "plugin-zip": "wp-scripts plugin-zip"
   },
   "repository": {
     "type": "git",
@@ -24,5 +25,8 @@
   "bugs": {
     "url": "https://github.com/cbravobernal/mvb/issues"
   },
-  "homepage": "https://github.com/cbravobernal/mvb#readme"
+  "homepage": "https://github.com/cbravobernal/mvb#readme",
+  "devDependencies": {
+    "@wordpress/scripts": "^30.12.0"
+  }
 }

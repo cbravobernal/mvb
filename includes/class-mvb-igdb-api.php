@@ -198,6 +198,196 @@ class MVB_IGDB_API {
 	public static function init() {
 		add_action( 'wp_ajax_mvb_search_games', array( __CLASS__, 'handle_search_ajax' ) );
 		add_action( 'wp_ajax_mvb_add_game', array( __CLASS__, 'handle_add_game_ajax' ) );
+		add_action( 'admin_menu', array( __CLASS__, 'add_igdb_settings_page' ) );
+		add_action( 'admin_init', array( __CLASS__, 'register_igdb_settings' ) );
+	}
+
+	/**
+	 * Add IGDB settings page.
+	 */
+	public static function add_igdb_settings_page() {
+		// Global settings for admins
+		if ( current_user_can( 'manage_options' ) ) {
+			add_submenu_page(
+				'edit.php?post_type=videogame',
+				__( 'IGDB Settings', 'mvb' ),
+				__( 'IGDB Settings', 'mvb' ),
+				'manage_options',
+				'mvb-igdb-settings',
+				array( __CLASS__, 'render_igdb_settings_page' )
+			);
+		}
+
+		// User-specific settings for gamers
+		if ( current_user_can( 'mvb_manage_igdb_settings' ) ) {
+			add_submenu_page(
+				'edit.php?post_type=videogame',
+				__( 'Your IGDB Settings', 'mvb' ),
+				__( 'Your IGDB Settings', 'mvb' ),
+				'mvb_manage_igdb_settings',
+				'mvb-user-igdb-settings',
+				array( __CLASS__, 'render_user_igdb_settings_page' )
+			);
+		}
+	}
+
+	/**
+	 * Register IGDB settings.
+	 */
+	public static function register_igdb_settings() {
+		register_setting( 'mvb_igdb_settings', 'mvb_igdb_client_id' );
+		register_setting( 'mvb_igdb_settings', 'mvb_igdb_client_secret' );
+	}
+
+	/**
+	 * Render IGDB settings page.
+	 */
+	public static function render_igdb_settings_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		// Save settings if form was submitted
+		if ( isset( $_POST['submit'] ) && check_admin_referer( 'mvb_igdb_settings' ) ) {
+			$client_id = isset( $_POST['mvb_igdb_client_id'] ) ? 
+				sanitize_text_field( wp_unslash( $_POST['mvb_igdb_client_id'] ) ) : '';
+			$client_secret = isset( $_POST['mvb_igdb_client_secret'] ) ? 
+				sanitize_text_field( wp_unslash( $_POST['mvb_igdb_client_secret'] ) ) : '';
+
+			update_option( 'mvb_igdb_client_id', $client_id );
+			update_option( 'mvb_igdb_client_secret', $client_secret );
+
+			// Clear access token to force refresh with new credentials
+			delete_option( 'mvb_igdb_access_token' );
+			delete_option( 'mvb_igdb_token_expires' );
+
+			echo '<div class="notice notice-success"><p>' . 
+				esc_html__( 'Settings saved successfully.', 'mvb' ) . '</p></div>';
+		}
+
+		// Get current values
+		$client_id = get_option( 'mvb_igdb_client_id', '' );
+		$client_secret = get_option( 'mvb_igdb_client_secret', '' );
+		?>
+		<div class="wrap">
+			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+			<form method="post" action="">
+				<?php wp_nonce_field( 'mvb_igdb_settings' ); ?>
+				<table class="form-table">
+					<tr>
+						<th scope="row">
+							<label for="mvb_igdb_client_id">
+								<?php esc_html_e( 'Client ID', 'mvb' ); ?>
+							</label>
+						</th>
+						<td>
+							<input type="text" 
+								   id="mvb_igdb_client_id" 
+								   name="mvb_igdb_client_id" 
+								   value="<?php echo esc_attr( $client_id ); ?>" 
+								   class="regular-text" />
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="mvb_igdb_client_secret">
+								<?php esc_html_e( 'Client Secret', 'mvb' ); ?>
+							</label>
+						</th>
+						<td>
+							<input type="password" 
+								   id="mvb_igdb_client_secret" 
+								   name="mvb_igdb_client_secret" 
+								   value="<?php echo esc_attr( $client_secret ); ?>" 
+								   class="regular-text" />
+						</td>
+					</tr>
+				</table>
+				<?php submit_button(); ?>
+			</form>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render user-specific IGDB settings page.
+	 */
+	public static function render_user_igdb_settings_page() {
+		if ( ! current_user_can( 'mvb_manage_igdb_settings' ) ) {
+			return;
+		}
+
+		$user_id = get_current_user_id();
+
+		// Save settings if form was submitted
+		if ( isset( $_POST['submit'] ) && check_admin_referer( 'mvb_user_igdb_settings' ) ) {
+			$client_id = isset( $_POST['mvb_igdb_client_id'] ) ? 
+				sanitize_text_field( wp_unslash( $_POST['mvb_igdb_client_id'] ) ) : '';
+			$client_secret = isset( $_POST['mvb_igdb_client_secret'] ) ? 
+				sanitize_text_field( wp_unslash( $_POST['mvb_igdb_client_secret'] ) ) : '';
+
+			update_user_meta( $user_id, 'mvb_igdb_client_id', $client_id );
+			update_user_meta( $user_id, 'mvb_igdb_client_secret', $client_secret );
+
+			echo '<div class="notice notice-success"><p>' . 
+				esc_html__( 'Your IGDB settings have been saved.', 'mvb' ) . '</p></div>';
+		}
+
+		// Get current values
+		$client_id = get_user_meta( $user_id, 'mvb_igdb_client_id', true );
+		$client_secret = get_user_meta( $user_id, 'mvb_igdb_client_secret', true );
+		?>
+		<div class="wrap">
+			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+			<p><?php esc_html_e( 'Enter your IGDB API credentials to manage your video game collection.', 'mvb' ); ?></p>
+			<p>
+				<?php
+				printf(
+					/* translators: %s: URL to IGDB API documentation */
+					wp_kses(
+						__( 'You can get your API credentials from the <a href="%s" target="_blank">IGDB API portal</a>.', 'mvb' ),
+						array( 'a' => array( 'href' => array(), 'target' => array() ) )
+					),
+					'https://api-docs.igdb.com/#getting-started'
+				);
+				?>
+			</p>
+			<form method="post" action="">
+				<?php wp_nonce_field( 'mvb_user_igdb_settings' ); ?>
+				<table class="form-table">
+					<tr>
+						<th scope="row">
+							<label for="mvb_igdb_client_id">
+								<?php esc_html_e( 'Client ID', 'mvb' ); ?>
+							</label>
+						</th>
+						<td>
+							<input type="text" 
+								   id="mvb_igdb_client_id" 
+								   name="mvb_igdb_client_id" 
+								   value="<?php echo esc_attr( $client_id ); ?>" 
+								   class="regular-text" />
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="mvb_igdb_client_secret">
+								<?php esc_html_e( 'Client Secret', 'mvb' ); ?>
+							</label>
+						</th>
+						<td>
+							<input type="password" 
+								   id="mvb_igdb_client_secret" 
+								   name="mvb_igdb_client_secret" 
+								   value="<?php echo esc_attr( $client_secret ); ?>" 
+								   class="regular-text" />
+						</td>
+					</tr>
+				</table>
+				<?php submit_button( __( 'Save Your Settings', 'mvb' ) ); ?>
+			</form>
+		</div>
+		<?php
 	}
 
 	/**
@@ -542,7 +732,7 @@ class MVB_IGDB_API {
 			// Set release date
 			if ( ! empty( $game_data['first_release_date'] ) ) {
 				try {
-					$date       = date( 'Y-m-d', $game_data['first_release_date'] );
+					$date = gmdate( 'Ymd', $game_data['first_release_date'] );
 					$acf_result = update_field( 'videogame_release_date', $date, $post_id );
 					error_log( 'Release date set to ' . $date . '. Result: ' . var_export( $acf_result, true ) );
 				} catch ( Exception $e ) {
@@ -645,6 +835,28 @@ class MVB_IGDB_API {
 		} catch ( Exception $e ) {
 			error_log( 'Exception in add game handler: ' . $e->getMessage() );
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
+		}
+	}
+
+	/**
+	 * Get IGDB credentials for the current context.
+	 *
+	 * @return array Array containing client_id and client_secret.
+	 */
+	public static function get_igdb_credentials() {
+		if ( current_user_can( 'manage_options' ) ) {
+			// Admin users use global settings
+			return array(
+				'client_id' => get_option( 'mvb_igdb_client_id', '' ),
+				'client_secret' => get_option( 'mvb_igdb_client_secret', '' ),
+			);
+		} else {
+			// Regular users use their own settings
+			$user_id = get_current_user_id();
+			return array(
+				'client_id' => get_user_meta( $user_id, 'mvb_igdb_client_id', true ),
+				'client_secret' => get_user_meta( $user_id, 'mvb_igdb_client_secret', true ),
+			);
 		}
 	}
 }

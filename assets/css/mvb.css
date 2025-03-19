@@ -339,3 +339,26 @@
 #mvb-migration-result {
     margin-top: 20px;
 }
+
+.mvb-errors {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #fff;
+    border-left: 4px solid #dc3232;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+}
+
+.mvb-errors h3 {
+    margin-top: 0;
+    color: #dc3232;
+}
+
+.mvb-errors ul {
+    margin: 0.5rem 0 0;
+    padding-left: 1.5rem;
+}
+
+.mvb-errors li {
+    margin: 0.25rem 0;
+    color: #666;
+}

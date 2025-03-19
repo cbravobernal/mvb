@@ -249,9 +249,9 @@ class MVB_IGDB_API {
 
 		// Save settings if form was submitted
 		if ( isset( $_POST['submit'] ) && check_admin_referer( 'mvb_igdb_settings' ) ) {
-			$client_id = isset( $_POST['mvb_igdb_client_id'] ) ? 
+			$client_id     = isset( $_POST['mvb_igdb_client_id'] ) ?
 				sanitize_text_field( wp_unslash( $_POST['mvb_igdb_client_id'] ) ) : '';
-			$client_secret = isset( $_POST['mvb_igdb_client_secret'] ) ? 
+			$client_secret = isset( $_POST['mvb_igdb_client_secret'] ) ?
 				sanitize_text_field( wp_unslash( $_POST['mvb_igdb_client_secret'] ) ) : '';
 
 			update_option( 'mvb_igdb_client_id', $client_id );
@@ -261,12 +261,12 @@ class MVB_IGDB_API {
 			delete_option( 'mvb_igdb_access_token' );
 			delete_option( 'mvb_igdb_token_expires' );
 
-			echo '<div class="notice notice-success"><p>' . 
+			echo '<div class="notice notice-success"><p>' .
 				esc_html__( 'Settings saved successfully.', 'mvb' ) . '</p></div>';
 		}
 
 		// Get current values
-		$client_id = get_option( 'mvb_igdb_client_id', '' );
+		$client_id     = get_option( 'mvb_igdb_client_id', '' );
 		$client_secret = get_option( 'mvb_igdb_client_secret', '' );
 		?>
 		<div class="wrap">
@@ -282,10 +282,10 @@ class MVB_IGDB_API {
 						</th>
 						<td>
 							<input type="text" 
-								   id="mvb_igdb_client_id" 
-								   name="mvb_igdb_client_id" 
-								   value="<?php echo esc_attr( $client_id ); ?>" 
-								   class="regular-text" />
+									id="mvb_igdb_client_id" 
+									name="mvb_igdb_client_id" 
+									value="<?php echo esc_attr( $client_id ); ?>" 
+									class="regular-text" />
 						</td>
 					</tr>
 					<tr>
@@ -296,10 +296,10 @@ class MVB_IGDB_API {
 						</th>
 						<td>
 							<input type="password" 
-								   id="mvb_igdb_client_secret" 
-								   name="mvb_igdb_client_secret" 
-								   value="<?php echo esc_attr( $client_secret ); ?>" 
-								   class="regular-text" />
+									id="mvb_igdb_client_secret" 
+									name="mvb_igdb_client_secret" 
+									value="<?php echo esc_attr( $client_secret ); ?>" 
+									class="regular-text" />
 						</td>
 					</tr>
 				</table>
@@ -321,20 +321,20 @@ class MVB_IGDB_API {
 
 		// Save settings if form was submitted
 		if ( isset( $_POST['submit'] ) && check_admin_referer( 'mvb_user_igdb_settings' ) ) {
-			$client_id = isset( $_POST['mvb_igdb_client_id'] ) ? 
+			$client_id     = isset( $_POST['mvb_igdb_client_id'] ) ?
 				sanitize_text_field( wp_unslash( $_POST['mvb_igdb_client_id'] ) ) : '';
-			$client_secret = isset( $_POST['mvb_igdb_client_secret'] ) ? 
+			$client_secret = isset( $_POST['mvb_igdb_client_secret'] ) ?
 				sanitize_text_field( wp_unslash( $_POST['mvb_igdb_client_secret'] ) ) : '';
 
 			update_user_meta( $user_id, 'mvb_igdb_client_id', $client_id );
 			update_user_meta( $user_id, 'mvb_igdb_client_secret', $client_secret );
 
-			echo '<div class="notice notice-success"><p>' . 
+			echo '<div class="notice notice-success"><p>' .
 				esc_html__( 'Your IGDB settings have been saved.', 'mvb' ) . '</p></div>';
 		}
 
 		// Get current values
-		$client_id = get_user_meta( $user_id, 'mvb_igdb_client_id', true );
+		$client_id     = get_user_meta( $user_id, 'mvb_igdb_client_id', true );
 		$client_secret = get_user_meta( $user_id, 'mvb_igdb_client_secret', true );
 		?>
 		<div class="wrap">
@@ -346,7 +346,12 @@ class MVB_IGDB_API {
 					/* translators: %s: URL to IGDB API documentation */
 					wp_kses(
 						__( 'You can get your API credentials from the <a href="%s" target="_blank">IGDB API portal</a>.', 'mvb' ),
-						array( 'a' => array( 'href' => array(), 'target' => array() ) )
+						array(
+							'a' => array(
+								'href'   => array(),
+								'target' => array(),
+							),
+						)
 					),
 					'https://api-docs.igdb.com/#getting-started'
 				);
@@ -363,10 +368,10 @@ class MVB_IGDB_API {
 						</th>
 						<td>
 							<input type="text" 
-								   id="mvb_igdb_client_id" 
-								   name="mvb_igdb_client_id" 
-								   value="<?php echo esc_attr( $client_id ); ?>" 
-								   class="regular-text" />
+									id="mvb_igdb_client_id" 
+									name="mvb_igdb_client_id" 
+									value="<?php echo esc_attr( $client_id ); ?>" 
+									class="regular-text" />
 						</td>
 					</tr>
 					<tr>
@@ -377,10 +382,10 @@ class MVB_IGDB_API {
 						</th>
 						<td>
 							<input type="password" 
-								   id="mvb_igdb_client_secret" 
-								   name="mvb_igdb_client_secret" 
-								   value="<?php echo esc_attr( $client_secret ); ?>" 
-								   class="regular-text" />
+									id="mvb_igdb_client_secret" 
+									name="mvb_igdb_client_secret" 
+									value="<?php echo esc_attr( $client_secret ); ?>" 
+									class="regular-text" />
 						</td>
 					</tr>
 				</table>
@@ -732,7 +737,7 @@ class MVB_IGDB_API {
 			// Set release date
 			if ( ! empty( $game_data['first_release_date'] ) ) {
 				try {
-					$date = gmdate( 'Ymd', $game_data['first_release_date'] );
+					$date       = gmdate( 'Ymd', $game_data['first_release_date'] );
 					$acf_result = update_field( 'videogame_release_date', $date, $post_id );
 					error_log( 'Release date set to ' . $date . '. Result: ' . var_export( $acf_result, true ) );
 				} catch ( Exception $e ) {
@@ -847,16 +852,142 @@ class MVB_IGDB_API {
 		if ( current_user_can( 'manage_options' ) ) {
 			// Admin users use global settings
 			return array(
-				'client_id' => get_option( 'mvb_igdb_client_id', '' ),
+				'client_id'     => get_option( 'mvb_igdb_client_id', '' ),
 				'client_secret' => get_option( 'mvb_igdb_client_secret', '' ),
 			);
 		} else {
 			// Regular users use their own settings
 			$user_id = get_current_user_id();
 			return array(
-				'client_id' => get_user_meta( $user_id, 'mvb_igdb_client_id', true ),
+				'client_id'     => get_user_meta( $user_id, 'mvb_igdb_client_id', true ),
 				'client_secret' => get_user_meta( $user_id, 'mvb_igdb_client_secret', true ),
 			);
 		}
+	}
+
+	/**
+	 * Update game cover from IGDB data
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $game_data IGDB game data.
+	 * @return bool|WP_Error True on success, WP_Error on failure.
+	 */
+	public static function update_game_cover( $post_id, $game_data ) {
+		if ( empty( $game_data['cover']['url'] ) ) {
+			return new WP_Error(
+				'no_cover',
+				__( 'No cover image available for this game', 'mvb' )
+			);
+		}
+
+		$cover_url = str_replace( 't_thumb', 't_cover_big', $game_data['cover']['url'] );
+		error_log( 'Updating cover for game ' . $post_id . ' with URL: ' . $cover_url . '.' );
+
+		try {
+			$attachment_id = self::attach_remote_image( $cover_url, $post_id );
+
+			if ( is_wp_error( $attachment_id ) ) {
+				error_log( 'Error attaching image: ' . $attachment_id->get_error_message() . '.' );
+				return $attachment_id;
+			}
+
+			error_log( 'Image attached with ID: ' . $attachment_id . '.' );
+			$acf_result = update_field( 'videogame_cover', $attachment_id, $post_id );
+			error_log( 'SCF cover update result: ' . var_export( $acf_result, true ) . '.' );
+			set_post_thumbnail( $post_id, $attachment_id );
+
+			return true;
+		} catch ( Exception $e ) {
+			error_log( 'Exception while handling image: ' . $e->getMessage() . '.' );
+			return new WP_Error( 'image_error', $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Update all game covers
+	 *
+	 * @return array Array with results of the operation
+	 */
+	public static function update_all_game_covers() {
+		$args = array(
+			'post_type'      => 'videogame',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+		);
+
+		$games   = get_posts( $args );
+		$results = array(
+			'total'     => count( $games ),
+			'processed' => 0,
+			'updated'   => 0,
+			'errors'    => array(),
+		);
+
+		foreach ( $games as $game ) {
+			error_log( 'Processing cover update for: ' . $game->post_title . '.' );
+			++$results['processed'];
+
+			try {
+				// Search for the game in IGDB by name.
+				error_log( 'Searching IGDB for: ' . $game->post_title . '.' );
+				$search_results = self::search_games( $game->post_title, 1 );
+
+				if ( is_wp_error( $search_results ) ) {
+					error_log( 'Search error for ' . $game->post_title . ': ' . $search_results->get_error_message() . '.' );
+					$results['errors'][] = sprintf(
+						__( 'Failed to search for "%1$s": %2$s', 'mvb' ),
+						$game->post_title,
+						$search_results->get_error_message()
+					);
+					continue;
+				}
+
+				if ( empty( $search_results ) ) {
+					error_log( 'No results found for: ' . $game->post_title . '.' );
+					$results['errors'][] = sprintf(
+						__( 'No IGDB match found for "%s"', 'mvb' ),
+						$game->post_title
+					);
+					continue;
+				}
+
+				// Get the first (best) match.
+				$game_data = $search_results[0];
+				error_log( 'Found match for ' . $game->post_title . ': ' . print_r( $game_data, true ) . '.' );
+
+				if ( empty( $game_data ) ) {
+					error_log( 'Invalid data for: ' . $game->post_title . '.' );
+					$results['errors'][] = sprintf(
+						__( 'Invalid data received for "%s"', 'mvb' ),
+						$game->post_title
+					);
+					continue;
+				}
+
+				// Update the cover.
+				$update_result = self::update_game_cover( $game->ID, $game_data );
+				if ( is_wp_error( $update_result ) ) {
+					error_log( 'Error updating cover: ' . $update_result->get_error_message() . '.' );
+					$results['errors'][] = sprintf(
+						__( 'Error updating cover for "%1$s": %2$s', 'mvb' ),
+						$game->post_title,
+						$update_result->get_error_message()
+					);
+					continue;
+				}
+
+				++$results['updated'];
+				error_log( 'Successfully updated cover for: ' . $game->post_title . '.' );
+			} catch ( Exception $e ) {
+				error_log( 'Exception while processing ' . $game->post_title . ': ' . $e->getMessage() . '.' );
+				$results['errors'][] = sprintf(
+					__( 'Exception while processing "%1$s": %2$s', 'mvb' ),
+					$game->post_title,
+					$e->getMessage()
+				);
+			}
+		}
+
+		return $results;
 	}
 }

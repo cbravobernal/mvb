@@ -238,6 +238,138 @@
     }
 }
 
+/* Stats page */
+.mvb-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.mvb-stat-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 8px;
+    padding: 1.25rem;
+}
+
+.mvb-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.mvb-stat-label {
+    color: #50575e;
+}
+
+.mvb-stats-sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.mvb-stats-section {
+    background: #fff;
+    border: 1px solid #d7dde3;
+    border-radius: 12px;
+    padding: 1rem 1.25rem 1.25rem;
+    box-shadow: 0 1px 2px rgba(18, 40, 60, 0.06);
+}
+
+.mvb-stats-section h2 {
+    margin-top: 0.25rem;
+    margin-bottom: 1rem;
+}
+
+.mvb-chart-wrap {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.mvb-line-chart {
+    width: 100%;
+    height: auto;
+    background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+    border: 1px solid #d7dde3;
+    border-radius: 10px;
+}
+
+.mvb-axis-line {
+    stroke: #9aa8b5;
+    stroke-width: 1;
+}
+
+.mvb-area {
+    fill: rgba(0, 115, 170, 0.15);
+}
+
+.mvb-line {
+    fill: none;
+    stroke: #0073aa;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.mvb-point {
+    fill: #005e8a;
+    stroke: #ffffff;
+    stroke-width: 2;
+}
+
+.mvb-line-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    font-size: 12px;
+    color: #50575e;
+}
+
+.mvb-bar-list {
+    margin: 0;
+}
+
+.mvb-bar-item + .mvb-bar-item {
+    margin-top: 0.75rem;
+}
+
+.mvb-bar-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 13px;
+    margin-bottom: 0.3rem;
+}
+
+.mvb-bar-track {
+    height: 10px;
+    background: #ecf0f4;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.mvb-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #0073aa 0%, #00a0d2 100%);
+}
+
+.mvb-stats-section table.widefat {
+    margin-top: 1rem;
+}
+
+.mvb-recent-list {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.mvb-recent-date {
+    margin-left: 0.5rem;
+    color: #50575e;
+    font-size: 12px;
+}
+
 /* Sortable columns */
 .widefat .column-videogame_status {
     width: 10%;

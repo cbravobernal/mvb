@@ -136,6 +136,10 @@ class MVB_IGDB_API {
 			return $access_token;
 		}
 
+		// Escape characters that would break out of the IGDB APICalypse search literal.
+		$safe_query = str_replace( array( '\\', '"' ), array( '\\\\', '\\"' ), (string) $query );
+		$safe_limit = max( 1, min( 50, (int) $limit ) );
+
 		$response = wp_remote_post(
 			'https://api.igdb.com/v4/games',
 			array(
@@ -143,9 +147,9 @@ class MVB_IGDB_API {
 					'Client-ID'     => get_option( 'mvb_igdb_client_id' ),
 					'Authorization' => 'Bearer ' . $access_token,
 				),
-				'body'    => 'search "' . $query . '"; 
-						  fields name,summary,first_release_date,cover.*,involved_companies.*,involved_companies.company.*,platforms.*; 
-						  limit ' . $limit . ';',
+				'body'    => 'search "' . $safe_query . '";
+						  fields name,summary,first_release_date,cover.*,involved_companies.*,involved_companies.company.*,platforms.*;
+						  limit ' . $safe_limit . ';',
 			)
 		);
 
@@ -169,22 +173,16 @@ class MVB_IGDB_API {
 	 * @return array|WP_Error Game data or WP_Error on failure
 	 */
 	public static function get_game( $game_id ) {
-		error_log( '=== Starting get_game for ID: ' . $game_id . ' ===' );
-
 		$query = 'fields name, cover.url, first_release_date, summary,
 				 genres.name, rating, rating_count, involved_companies.*, 
 				 involved_companies.company.*;
 				 where id = ' . absint( $game_id ) . ';';
 
-		error_log( 'IGDB Query: ' . $query );
 		$result = self::request( 'games', $query );
 
 		if ( is_wp_error( $result ) ) {
-			error_log( 'Error getting game: ' . $result->get_error_message() );
 			return $result;
 		}
-
-		error_log( 'Game API Response: ' . print_r( $result, true ) );
 
 		return ! empty( $result[0] ) ? $result[0] : new WP_Error(
 			'not_found',
@@ -425,7 +423,11 @@ class MVB_IGDB_API {
 	public static function handle_search_ajax() {
 		check_ajax_referer( 'mvb_search', 'nonce' );
 
-		$search = isset( $_POST['search'] ) ? sanitize_text_field( $_POST['search'] ) : '';
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mvb' ) ), 403 );
+		}
+
+		$search = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
 
 		if ( empty( $search ) ) {
 			wp_send_json_error( array( 'message' => __( 'Please enter a search term', 'mvb' ) ) );
@@ -509,10 +511,7 @@ class MVB_IGDB_API {
 	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
 	public static function process_companies( $post_id, $game ) {
-		error_log( '=== Processing companies for game ID: ' . $post_id . ' ===' );
-
 		if ( empty( $game['involved_companies'] ) ) {
-			error_log( 'No involved companies found' );
 			return true;
 		}
 
@@ -522,7 +521,6 @@ class MVB_IGDB_API {
 			if ( ! is_wp_error( $existing_terms ) ) {
 				foreach ( $existing_terms as $term ) {
 					if ( is_numeric( $term->name ) || preg_match( '/^\d+$/', $term->name ) ) {
-						error_log( 'Deleting numeric company term: ' . $term->name );
 						wp_remove_object_terms( $post_id, $term->term_id, 'mvb_company' );
 						wp_delete_term( $term->term_id, 'mvb_company' );
 					}
@@ -530,10 +528,7 @@ class MVB_IGDB_API {
 			}
 
 			foreach ( $game['involved_companies'] as $involved_company ) {
-				error_log( 'Processing involved company: ' . print_r( $involved_company, true ) );
-
 				if ( empty( $involved_company['company'] ) ) {
-					error_log( 'No company data found in involved company' );
 					continue;
 				}
 
@@ -545,22 +540,15 @@ class MVB_IGDB_API {
 					preg_match( '/^\d+$/', $company['name'] ) ||
 					trim( $company['name'] ) === ''
 				) {
-					error_log( 'Skipping invalid company name: ' . ( $company['name'] ?? 'empty' ) );
 					continue;
 				}
-
-				error_log( 'Adding/updating company: ' . print_r( $company, true ) );
 
 				$term_id = MVB_Taxonomies::add_or_update_company( $company );
 
 				if ( is_wp_error( $term_id ) ) {
-					error_log( 'Error adding company: ' . $term_id->get_error_message() );
 					continue;
 				}
 
-				error_log( 'Successfully added/updated company with term ID: ' . $term_id );
-
-				// Determine company role
 				$roles = array();
 				if ( ! empty( $involved_company['developer'] ) ) {
 					$roles[] = 'developer';
@@ -575,16 +563,12 @@ class MVB_IGDB_API {
 					$roles[] = 'porting';
 				}
 
-				error_log( 'Company roles: ' . implode( ', ', $roles ) );
-
 				foreach ( $roles as $role ) {
 					MVB_Taxonomies::link_company_to_game( $post_id, $term_id, $role );
-					error_log( 'Linked company ' . $term_id . ' to game ' . $post_id . ' with role: ' . $role );
 				}
 			}
 			return true;
 		} catch ( Exception $e ) {
-			error_log( 'Error processing companies: ' . $e->getMessage() );
 			return new WP_Error( 'company_processing_error', $e->getMessage() );
 		}
 	}
@@ -597,11 +581,7 @@ class MVB_IGDB_API {
 	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
 	public static function process_platforms( $post_id, $game ) {
-		error_log( '=== Processing platforms for game ID: ' . $post_id . ' ===' );
-		error_log( 'Game data: ' . print_r( $game, true ) );
-
 		if ( empty( $game['platforms'] ) ) {
-			error_log( 'No platforms found' );
 			return true;
 		}
 
@@ -611,7 +591,6 @@ class MVB_IGDB_API {
 			if ( ! is_wp_error( $existing_terms ) ) {
 				foreach ( $existing_terms as $term ) {
 					if ( is_numeric( $term->name ) || preg_match( '/^\d+$/', $term->name ) ) {
-						error_log( 'Deleting numeric platform term: ' . $term->name );
 						wp_remove_object_terms( $post_id, $term->term_id, 'mvb_platform' );
 						wp_delete_term( $term->term_id, 'mvb_platform' );
 					}
@@ -619,15 +598,11 @@ class MVB_IGDB_API {
 			}
 
 			foreach ( $game['platforms'] as $platform ) {
-				error_log( 'Processing platform: ' . print_r( $platform, true ) );
-
-				// Skip if platform name is just a number or empty
 				if ( empty( $platform['name'] ) ||
 					is_numeric( $platform['name'] ) ||
 					preg_match( '/^\d+$/', $platform['name'] ) ||
 					trim( $platform['name'] ) === ''
 				) {
-					error_log( 'Skipping invalid platform name: ' . ( $platform['name'] ?? 'empty' ) );
 					continue;
 				}
 
@@ -636,28 +611,16 @@ class MVB_IGDB_API {
 					$platform['slug'] = sanitize_title( $platform['name'] );
 				}
 
-				error_log( 'Adding/updating platform: ' . print_r( $platform, true ) );
-
 				$term_id = MVB_Taxonomies::add_or_update_platform( $platform );
 
 				if ( is_wp_error( $term_id ) ) {
-					error_log( 'Error adding platform: ' . $term_id->get_error_message() );
 					continue;
 				}
 
-				error_log( 'Successfully added/updated platform with term ID: ' . $term_id );
-
-				// Link platform to game
-				$link_result = MVB_Taxonomies::link_platform_to_game( $post_id, $term_id );
-				if ( is_wp_error( $link_result ) ) {
-					error_log( 'Error linking platform: ' . $link_result->get_error_message() );
-				} else {
-					error_log( 'Linked platform ' . $term_id . ' to game ' . $post_id );
-				}
+				MVB_Taxonomies::link_platform_to_game( $post_id, $term_id );
 			}
 			return true;
 		} catch ( Exception $e ) {
-			error_log( 'Error processing platforms: ' . $e->getMessage() );
 			return new WP_Error( 'platform_processing_error', $e->getMessage() );
 		}
 	}
@@ -687,10 +650,7 @@ class MVB_IGDB_API {
 	 * @return int|WP_Error Post ID on success, WP_Error on failure
 	 */
 	public static function create_videogame_post( $game_data ) {
-		error_log( '=== Start creating videogame post ===' );
-
 		if ( ! function_exists( 'update_field' ) ) {
-			error_log( 'SCF is not active!' );
 			return new WP_Error( 'acf_missing', 'Secure Custom Fields plugin is not active' );
 		}
 
@@ -703,75 +663,53 @@ class MVB_IGDB_API {
 					wp_kses_post( $game_data['summary'] ) : '',
 			);
 
-			error_log( 'Creating post with data: ' . print_r( $post_data, true ) );
 			$post_id = wp_insert_post( $post_data, true );
 
 			if ( is_wp_error( $post_id ) ) {
-				error_log( 'Error creating post: ' . $post_id->get_error_message() );
 				return $post_id;
 			}
 
-			error_log( 'Post created with ID: ' . $post_id );
-
-			// Handle cover image
 			if ( ! empty( $game_data['cover']['url'] ) ) {
 				$cover_url = str_replace( 't_thumb', 't_cover_big', $game_data['cover']['url'] );
-				error_log( 'Processing cover image: ' . $cover_url );
-
 				try {
 					$attachment_id = self::attach_remote_image( $cover_url, $post_id );
-
-					if ( is_wp_error( $attachment_id ) ) {
-						error_log( 'Error attaching image: ' . $attachment_id->get_error_message() );
-					} else {
-						error_log( 'Image attached with ID: ' . $attachment_id );
-						$acf_result = update_field( 'videogame_cover', $attachment_id, $post_id );
-						error_log( 'SCF cover update result: ' . var_export( $acf_result, true ) );
+					if ( ! is_wp_error( $attachment_id ) ) {
+						update_field( 'videogame_cover', $attachment_id, $post_id );
 						set_post_thumbnail( $post_id, $attachment_id );
 					}
 				} catch ( Exception $e ) {
-					error_log( 'Exception while handling image: ' . $e->getMessage() );
+					// Ignore image failure so the rest of the post is still created.
 				}
 			}
 
 			// Set release date
 			if ( ! empty( $game_data['first_release_date'] ) ) {
 				try {
-					$date       = gmdate( 'Ymd', $game_data['first_release_date'] );
-					$acf_result = update_field( 'videogame_release_date', $date, $post_id );
-					error_log( 'Release date set to ' . $date . '. Result: ' . var_export( $acf_result, true ) );
+					$date = gmdate( 'Ymd', $game_data['first_release_date'] );
+					update_field( 'videogame_release_date', $date, $post_id );
 				} catch ( Exception $e ) {
-					error_log( 'Exception while setting release date: ' . $e->getMessage() );
+					// Ignore release date failure.
 				}
 			}
 
 			// Set default status
 			try {
-				$status_result = class_exists( 'MVB_Data_Health' ) ?
-					MVB_Data_Health::set_status_taxonomy( $post_id, 'backlog' ) :
-					! is_wp_error( wp_set_object_terms( $post_id, 'backlog', 'mvb_game_status', false ) );
-				error_log( 'Status set to backlog taxonomy. Result: ' . var_export( $status_result, true ) );
+				if ( class_exists( 'MVB_Data_Health' ) ) {
+					MVB_Data_Health::set_status_taxonomy( $post_id, 'backlog' );
+				} else {
+					wp_set_object_terms( $post_id, 'backlog', 'mvb_game_status', false );
+				}
 			} catch ( Exception $e ) {
-				error_log( 'Exception while setting status: ' . $e->getMessage() );
+				// Ignore status failure.
 			}
 
-			// Process companies
-			$process_result = self::process_companies( $post_id, $game_data );
-			if ( is_wp_error( $process_result ) ) {
-				error_log( 'Error processing companies: ' . $process_result->get_error_message() );
-			}
+			// Process companies and platforms; individual failures are handled inside.
+			self::process_companies( $post_id, $game_data );
+			self::process_platforms( $post_id, $game_data );
 
-			// Process platforms
-			$process_result = self::process_platforms( $post_id, $game_data );
-			if ( is_wp_error( $process_result ) ) {
-				error_log( 'Error processing platforms: ' . $process_result->get_error_message() );
-			}
-
-			error_log( '=== Finished creating videogame post ===' );
 			return $post_id;
 
 		} catch ( Exception $e ) {
-			error_log( 'Fatal exception in create_videogame_post: ' . $e->getMessage() );
 			return new WP_Error( 'creation_failed', $e->getMessage() );
 		}
 	}
@@ -780,8 +718,6 @@ class MVB_IGDB_API {
 	 * Handle AJAX add game request
 	 */
 	public static function handle_add_game_ajax() {
-		error_log( '=== Starting add game AJAX handler ===' );
-
 		try {
 			check_ajax_referer( 'mvb_add_game', 'nonce' );
 
@@ -789,50 +725,24 @@ class MVB_IGDB_API {
 				wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mvb' ) ) );
 			}
 
-			$raw_data = isset( $_POST['game'] ) ? $_POST['game'] : '';
-			error_log( 'Raw data type: ' . gettype( $raw_data ) );
-			error_log( 'Raw data content: ' . $raw_data );  // Log the actual content
-
-			// Try different JSON decode approaches
-			$game_data = json_decode( $raw_data, true );
-			if ( $game_data === null ) {
-				error_log( 'First JSON decode failed. Error: ' . json_last_error_msg() );
-
-				// Try with stripslashes
-				$game_data = json_decode( stripslashes( $raw_data ), true );
-				if ( $game_data === null ) {
-					error_log( 'Second JSON decode failed. Error: ' . json_last_error_msg() );
-
-					// Try with wp_unslash
-					$game_data = json_decode( wp_unslash( $raw_data ), true );
-					if ( $game_data === null ) {
-						error_log( 'Third JSON decode failed. Error: ' . json_last_error_msg() );
-					}
-				}
-			}
+			$raw_data  = isset( $_POST['game'] ) ? wp_unslash( $_POST['game'] ) : '';
+			$game_data = is_string( $raw_data ) ? json_decode( $raw_data, true ) : null;
 
 			if ( ! is_array( $game_data ) ) {
-				error_log( 'Failed to get valid game data array' );
 				wp_send_json_error(
 					array(
-						'message'     => __( 'Invalid game data', 'mvb' ),
-						'raw_type'    => gettype( $raw_data ),
-						'raw_content' => substr( $raw_data, 0, 1000 ), // First 1000 chars
-						'json_error'  => json_last_error_msg(),
+						'message' => __( 'Invalid game data', 'mvb' ),
 					)
 				);
 				return;
 			}
 
-			error_log( 'Successfully decoded game data: ' . print_r( $game_data, true ) );
 			$result = self::create_videogame_post( $game_data );
 
 			if ( is_wp_error( $result ) ) {
-				error_log( 'Error creating post: ' . $result->get_error_message() );
 				wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 			}
 
-			error_log( 'Successfully created post with ID: ' . $result );
 			wp_send_json_success(
 				array(
 					'message' => __( 'Game added successfully!', 'mvb' ),
@@ -840,7 +750,6 @@ class MVB_IGDB_API {
 				)
 			);
 		} catch ( Exception $e ) {
-			error_log( 'Exception in add game handler: ' . $e->getMessage() );
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
 		}
 	}
@@ -883,24 +792,18 @@ class MVB_IGDB_API {
 		}
 
 		$cover_url = str_replace( 't_thumb', 't_cover_big', $game_data['cover']['url'] );
-		error_log( 'Updating cover for game ' . $post_id . ' with URL: ' . $cover_url . '.' );
-
 		try {
 			$attachment_id = self::attach_remote_image( $cover_url, $post_id );
 
 			if ( is_wp_error( $attachment_id ) ) {
-				error_log( 'Error attaching image: ' . $attachment_id->get_error_message() . '.' );
 				return $attachment_id;
 			}
 
-			error_log( 'Image attached with ID: ' . $attachment_id . '.' );
 			$acf_result = update_field( 'videogame_cover', $attachment_id, $post_id );
-			error_log( 'SCF cover update result: ' . var_export( $acf_result, true ) . '.' );
 			set_post_thumbnail( $post_id, $attachment_id );
 
 			return true;
 		} catch ( Exception $e ) {
-			error_log( 'Exception while handling image: ' . $e->getMessage() . '.' );
 			return new WP_Error( 'image_error', $e->getMessage() );
 		}
 	}
@@ -926,16 +829,13 @@ class MVB_IGDB_API {
 		);
 
 		foreach ( $games as $game ) {
-			error_log( 'Processing cover update for: ' . $game->post_title . '.' );
 			++$results['processed'];
 
 			try {
 				// Search for the game in IGDB by name.
-				error_log( 'Searching IGDB for: ' . $game->post_title . '.' );
 				$search_results = self::search_games( $game->post_title, 1 );
 
 				if ( is_wp_error( $search_results ) ) {
-					error_log( 'Search error for ' . $game->post_title . ': ' . $search_results->get_error_message() . '.' );
 					$results['errors'][] = sprintf(
 						__( 'Failed to search for "%1$s": %2$s', 'mvb' ),
 						$game->post_title,
@@ -945,7 +845,6 @@ class MVB_IGDB_API {
 				}
 
 				if ( empty( $search_results ) ) {
-					error_log( 'No results found for: ' . $game->post_title . '.' );
 					$results['errors'][] = sprintf(
 						__( 'No IGDB match found for "%s"', 'mvb' ),
 						$game->post_title
@@ -955,10 +854,7 @@ class MVB_IGDB_API {
 
 				// Get the first (best) match.
 				$game_data = $search_results[0];
-				error_log( 'Found match for ' . $game->post_title . ': ' . print_r( $game_data, true ) . '.' );
-
 				if ( empty( $game_data ) ) {
-					error_log( 'Invalid data for: ' . $game->post_title . '.' );
 					$results['errors'][] = sprintf(
 						__( 'Invalid data received for "%s"', 'mvb' ),
 						$game->post_title
@@ -969,7 +865,6 @@ class MVB_IGDB_API {
 				// Update the cover.
 				$update_result = self::update_game_cover( $game->ID, $game_data );
 				if ( is_wp_error( $update_result ) ) {
-					error_log( 'Error updating cover: ' . $update_result->get_error_message() . '.' );
 					$results['errors'][] = sprintf(
 						__( 'Error updating cover for "%1$s": %2$s', 'mvb' ),
 						$game->post_title,
@@ -979,9 +874,7 @@ class MVB_IGDB_API {
 				}
 
 				++$results['updated'];
-				error_log( 'Successfully updated cover for: ' . $game->post_title . '.' );
 			} catch ( Exception $e ) {
-				error_log( 'Exception while processing ' . $game->post_title . ': ' . $e->getMessage() . '.' );
 				$results['errors'][] = sprintf(
 					__( 'Exception while processing "%1$s": %2$s', 'mvb' ),
 					$game->post_title,

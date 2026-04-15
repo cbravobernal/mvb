@@ -174,7 +174,12 @@ class MVB_HLTB_API {
 	 * @param WP_Post $post The post object.
 	 */
 	public static function save_hltb_data( $post_id, $post ) {
-		if ( ! isset( $_POST['mvb_hltb_nonce'] ) || ! wp_verify_nonce( $_POST['mvb_hltb_nonce'], 'mvb_hltb_data' ) ) {
+		if ( ! isset( $_POST['mvb_hltb_nonce'] ) ) {
+			return;
+		}
+
+		$nonce = sanitize_text_field( wp_unslash( $_POST['mvb_hltb_nonce'] ) );
+		if ( ! wp_verify_nonce( $nonce, 'mvb_hltb_data' ) ) {
 			return;
 		}
 
@@ -187,11 +192,16 @@ class MVB_HLTB_API {
 		}
 
 		if ( isset( $_POST['hltb_main_story'] ) ) {
-			update_post_meta(
-				$post_id,
-				'hltb_main_story',
-				sanitize_text_field( $_POST['hltb_main_story'] )
-			);
+			$hltb_value = sanitize_text_field( wp_unslash( $_POST['hltb_main_story'] ) );
+			if ( '' === $hltb_value ) {
+				delete_post_meta( $post_id, 'hltb_main_story' );
+			} elseif ( is_numeric( $hltb_value ) ) {
+				update_post_meta(
+					$post_id,
+					'hltb_main_story',
+					(float) $hltb_value
+				);
+			}
 		}
 	}
 }

@@ -1054,8 +1054,6 @@ class MVB_Admin {
 				return;
 			}
 
-			error_log( 'MVB: Starting platform sync process' );
-
 			$processed = 0;
 			$updated   = 0;
 			$errors    = array();
@@ -1068,8 +1066,6 @@ class MVB_Admin {
 					'post_status'    => 'publish',
 				)
 			);
-
-			error_log( 'MVB: Found ' . count( $games ) . ' games to process' );
 
 			if ( empty( $games ) ) {
 				wp_send_json_success(
@@ -1086,16 +1082,13 @@ class MVB_Admin {
 			}
 
 			foreach ( $games as $game ) {
-				error_log( 'MVB: Processing game: ' . $game->post_title );
 				++$processed;
 
 				try {
 					// Search for the game in IGDB by name
-					error_log( 'MVB: Searching IGDB for: ' . $game->post_title );
 					$search_results = MVB_IGDB_API::search_games( $game->post_title, 1 );
 
 					if ( is_wp_error( $search_results ) ) {
-						error_log( 'MVB: Search error for ' . $game->post_title . ': ' . $search_results->get_error_message() );
 						$errors[] = sprintf(
 							__( 'Failed to search for "%1$s": %2$s', 'mvb' ),
 							$game->post_title,
@@ -1105,7 +1098,6 @@ class MVB_Admin {
 					}
 
 					if ( empty( $search_results ) ) {
-						error_log( 'MVB: No results found for: ' . $game->post_title );
 						$errors[] = sprintf(
 							__( 'No IGDB match found for "%s"', 'mvb' ),
 							$game->post_title
@@ -1115,10 +1107,7 @@ class MVB_Admin {
 
 					// Get the first (best) match
 					$game_data = $search_results[0];
-					error_log( 'MVB: Found match for ' . $game->post_title . ': ' . print_r( $game_data, true ) );
-
 					if ( empty( $game_data ) ) {
-						error_log( 'MVB: Invalid data for: ' . $game->post_title );
 						$errors[] = sprintf(
 							__( 'Invalid data received for "%s"', 'mvb' ),
 							$game->post_title
@@ -1127,10 +1116,8 @@ class MVB_Admin {
 					}
 
 					// Process platforms
-					error_log( 'MVB: Processing platforms for: ' . $game->post_title );
 					$process_result = MVB_IGDB_API::process_platforms( $game->ID, $game_data );
 					if ( is_wp_error( $process_result ) ) {
-						error_log( 'MVB: Error processing platforms: ' . $process_result->get_error_message() );
 						$errors[] = sprintf(
 							__( 'Error processing platforms for "%1$s": %2$s', 'mvb' ),
 							$game->post_title,
@@ -1139,9 +1126,7 @@ class MVB_Admin {
 						continue;
 					}
 					++$updated;
-					error_log( 'MVB: Successfully processed: ' . $game->post_title );
 				} catch ( Exception $e ) {
-					error_log( 'MVB: Error processing ' . $game->post_title . ': ' . $e->getMessage() );
 					$errors[] = sprintf(
 						__( 'Error processing platforms for "%1$s": %2$s', 'mvb' ),
 						$game->post_title,
@@ -1149,8 +1134,6 @@ class MVB_Admin {
 					);
 				}
 			}
-
-			error_log( 'MVB: Sync completed. Processed: ' . $processed . ', Updated: ' . $updated . ', Errors: ' . count( $errors ) );
 
 			wp_send_json_success(
 				array(
@@ -1169,8 +1152,6 @@ class MVB_Admin {
 			);
 
 		} catch ( Exception $e ) {
-			error_log( 'MVB: Fatal error in sync process: ' . $e->getMessage() );
-			error_log( 'MVB: Stack trace: ' . $e->getTraceAsString() );
 			wp_send_json_error(
 				array(
 					'message' => sprintf(
@@ -1217,8 +1198,6 @@ class MVB_Admin {
 				return;
 			}
 
-			error_log( 'MVB: Starting company sync process' );
-
 			$processed = 0;
 			$updated   = 0;
 			$errors    = array();
@@ -1231,8 +1210,6 @@ class MVB_Admin {
 					'post_status'    => 'publish',
 				)
 			);
-
-			error_log( 'MVB: Found ' . count( $games ) . ' games to process' );
 
 			if ( empty( $games ) ) {
 				wp_send_json_success(
@@ -1249,16 +1226,13 @@ class MVB_Admin {
 			}
 
 			foreach ( $games as $game ) {
-				error_log( 'MVB: Processing game: ' . $game->post_title );
 				++$processed;
 
 				try {
 					// Search for the game in IGDB by name
-					error_log( 'MVB: Searching IGDB for: ' . $game->post_title );
 					$search_results = MVB_IGDB_API::search_games( $game->post_title, 1 );
 
 					if ( is_wp_error( $search_results ) ) {
-						error_log( 'MVB: Search error for ' . $game->post_title . ': ' . $search_results->get_error_message() );
 						$errors[] = sprintf(
 							__( 'Failed to search for "%1$s": %2$s', 'mvb' ),
 							$game->post_title,
@@ -1268,7 +1242,6 @@ class MVB_Admin {
 					}
 
 					if ( empty( $search_results ) ) {
-						error_log( 'MVB: No results found for: ' . $game->post_title );
 						$errors[] = sprintf(
 							__( 'No IGDB match found for "%s"', 'mvb' ),
 							$game->post_title
@@ -1278,10 +1251,7 @@ class MVB_Admin {
 
 					// Get the first (best) match
 					$game_data = $search_results[0];
-					error_log( 'MVB: Found match for ' . $game->post_title . ': ' . print_r( $game_data, true ) );
-
 					if ( empty( $game_data ) ) {
-						error_log( 'MVB: Invalid data for: ' . $game->post_title );
 						$errors[] = sprintf(
 							__( 'Invalid data received for "%s"', 'mvb' ),
 							$game->post_title
@@ -1290,14 +1260,11 @@ class MVB_Admin {
 					}
 
 					// Store the IGDB ID for future reference
-					error_log( 'MVB: Updating IGDB ID for: ' . $game->post_title );
 					update_post_meta( $game->ID, 'igdb_id', $game_data['id'] );
 
 					// Process the companies
-					error_log( 'MVB: Processing companies for: ' . $game->post_title );
 					$process_result = MVB_IGDB_API::process_companies( $game->ID, $game_data );
 					if ( is_wp_error( $process_result ) ) {
-						error_log( 'MVB: Error processing companies: ' . $process_result->get_error_message() );
 						$errors[] = sprintf(
 							__( 'Error processing companies for "%1$s": %2$s', 'mvb' ),
 							$game->post_title,
@@ -1306,9 +1273,7 @@ class MVB_Admin {
 						continue;
 					}
 					++$updated;
-					error_log( 'MVB: Successfully processed: ' . $game->post_title );
 				} catch ( Exception $e ) {
-					error_log( 'MVB: Error processing ' . $game->post_title . ': ' . $e->getMessage() );
 					$errors[] = sprintf(
 						__( 'Error processing companies for "%1$s": %2$s', 'mvb' ),
 						$game->post_title,
@@ -1316,8 +1281,6 @@ class MVB_Admin {
 					);
 				}
 			}
-
-			error_log( 'MVB: Sync completed. Processed: ' . $processed . ', Updated: ' . $updated . ', Errors: ' . count( $errors ) );
 
 			wp_send_json_success(
 				array(
@@ -1336,8 +1299,6 @@ class MVB_Admin {
 			);
 
 		} catch ( Exception $e ) {
-			error_log( 'MVB: Fatal error in sync process: ' . $e->getMessage() );
-			error_log( 'MVB: Stack trace: ' . $e->getTraceAsString() );
 			wp_send_json_error(
 				array(
 					'message' => sprintf(
@@ -1359,7 +1320,7 @@ class MVB_Admin {
 			return;
 		}
 
-		$current_year = isset( $_GET['completion_year'] ) ? $_GET['completion_year'] : '';
+		$current_year = isset( $_GET['completion_year'] ) ? sanitize_text_field( wp_unslash( $_GET['completion_year'] ) ) : '';
 
 		// Get all completion years from the database
 		global $wpdb;
@@ -1374,8 +1335,6 @@ class MVB_Admin {
 				'videogame_completion_date'
 			)
 		);
-
-		error_log( 'MVB: Found completion years: ' . print_r( $years, true ) );
 
 		if ( empty( $years ) ) {
 			return;
@@ -1415,10 +1374,11 @@ class MVB_Admin {
 			return;
 		}
 
-		$year = sanitize_text_field( $_GET['completion_year'] );
-		error_log( 'MVB: Filtering by year: ' . $year );
-
-		// Use LIKE to match the year prefix
+		$year = sanitize_text_field( wp_unslash( $_GET['completion_year'] ) );
+		// Only accept a four-digit year to keep the LIKE value safe.
+		if ( ! preg_match( '/^[0-9]{4}$/', $year ) ) {
+			return;
+		}
 		$query->set(
 			'meta_query',
 			array(
@@ -1430,7 +1390,6 @@ class MVB_Admin {
 			)
 		);
 
-		error_log( 'MVB: Meta query: ' . print_r( $query->get( 'meta_query' ), true ) );
 	}
 
 	/**
@@ -1443,7 +1402,7 @@ class MVB_Admin {
 			return;
 		}
 
-		$current_platform = isset( $_GET['platform'] ) ? $_GET['platform'] : '';
+		$current_platform = isset( $_GET['platform'] ) ? sanitize_text_field( wp_unslash( $_GET['platform'] ) ) : '';
 
 		// Get all platforms
 		$platforms = get_terms(
@@ -1493,10 +1452,7 @@ class MVB_Admin {
 			return;
 		}
 
-		$platform = sanitize_text_field( $_GET['platform'] );
-		error_log( 'MVB: Filtering by platform: ' . $platform );
-
-		// Add tax query for platform
+		$platform = sanitize_text_field( wp_unslash( $_GET['platform'] ) );
 		$tax_query   = $query->get( 'tax_query' ) ?: array();
 		$tax_query[] = array(
 			'taxonomy' => 'mvb_platform',
@@ -1505,7 +1461,6 @@ class MVB_Admin {
 		);
 		$query->set( 'tax_query', $tax_query );
 
-		error_log( 'MVB: Tax query: ' . print_r( $query->get( 'tax_query' ), true ) );
 	}
 
 	/**

@@ -31,9 +31,6 @@ class MVB_Taxonomies {
 	 * Register custom taxonomies
 	 */
 	public static function register_taxonomies() {
-		error_log( '=== Registering MVB taxonomies ===' );
-
-		// Register Company Taxonomy
 		$result = register_taxonomy(
 			'mvb_company',
 			'videogame',
@@ -90,7 +87,6 @@ class MVB_Taxonomies {
 		// Register Game Status Taxonomy
 		self::register_game_status_taxonomy();
 
-		error_log( 'Register taxonomy result: ' . print_r( $result, true ) );
 	}
 
 	/**
@@ -138,15 +134,11 @@ class MVB_Taxonomies {
 	 * @return int|WP_Error Term ID on success, WP_Error on failure.
 	 */
 	public static function add_or_update_company( $igdb_company ) {
-		error_log( 'Adding/updating company: ' . print_r( $igdb_company, true ) );
-
-		// Skip if company name is just a number or empty
 		if ( empty( $igdb_company['name'] ) ||
 			is_numeric( $igdb_company['name'] ) ||
 			preg_match( '/^\d+$/', $igdb_company['name'] ) ||
 			trim( $igdb_company['name'] ) === ''
 		) {
-			error_log( 'Skipping invalid company name: ' . ( $igdb_company['name'] ?? 'empty' ) );
 			return new WP_Error( 'invalid_company_name', 'Invalid company name' );
 		}
 
@@ -172,7 +164,6 @@ class MVB_Taxonomies {
 				)
 			);
 			if ( is_wp_error( $result ) ) {
-				error_log( 'Error updating company term: ' . $result->get_error_message() );
 				return $result;
 			}
 			$term_id = $result['term_id'];
@@ -186,7 +177,6 @@ class MVB_Taxonomies {
 				)
 			);
 			if ( is_wp_error( $result ) ) {
-				error_log( 'Error inserting company term: ' . $result->get_error_message() );
 				return $result;
 			}
 			$term_id = $result['term_id'];
@@ -216,7 +206,6 @@ class MVB_Taxonomies {
 	public static function link_company_to_game( $post_id, $term_id, $role ) {
 		$result = wp_set_object_terms( $post_id, $term_id, 'mvb_company', true );
 		if ( is_wp_error( $result ) ) {
-			error_log( 'Error linking company: ' . $result->get_error_message() );
 			return $result;
 		}
 		update_post_meta( $post_id, "_company_{$term_id}_role", $role );
@@ -230,9 +219,6 @@ class MVB_Taxonomies {
 	 * @return int|WP_Error Term ID on success, WP_Error on failure.
 	 */
 	public static function add_or_update_platform( $igdb_platform ) {
-		error_log( 'Adding/updating platform: ' . print_r( $igdb_platform, true ) );
-
-		// Create slug if not present
 		if ( empty( $igdb_platform['slug'] ) ) {
 			$igdb_platform['slug'] = sanitize_title( $igdb_platform['name'] );
 		}
@@ -254,7 +240,6 @@ class MVB_Taxonomies {
 				)
 			);
 			if ( is_wp_error( $result ) ) {
-				error_log( 'Error updating platform term: ' . $result->get_error_message() );
 				return $result;
 			}
 			$term_id = $result['term_id'];
@@ -268,7 +253,6 @@ class MVB_Taxonomies {
 				)
 			);
 			if ( is_wp_error( $result ) ) {
-				error_log( 'Error inserting platform term: ' . $result->get_error_message() );
 				return $result;
 			}
 			$term_id = $result['term_id'];

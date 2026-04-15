@@ -74,6 +74,24 @@ class MVB_Admin {
 			'mvb-stats',
 			array( __CLASS__, 'render_stats_page' )
 		);
+
+		add_submenu_page(
+			'edit.php?post_type=videogame',
+			__( 'Recommendations', 'mvb' ),
+			__( 'Recommendations', 'mvb' ),
+			'edit_posts',
+			'mvb-recommendations',
+			array( 'MVB_Recommendations', 'render_page' )
+		);
+
+		add_submenu_page(
+			'edit.php?post_type=videogame',
+			__( 'Data Health', 'mvb' ),
+			__( 'Data Health', 'mvb' ),
+			'manage_options',
+			'mvb-data-health',
+			array( 'MVB_Data_Health', 'render_page' )
+		);
 	}
 
 	/**
@@ -240,7 +258,9 @@ class MVB_Admin {
 		// Load on settings and add game pages
 		if ( 'settings_page_mvb-settings' === $hook ||
 			'videogame_page_mvb-add-game' === $hook ||
-			'videogame_page_mvb-stats' === $hook
+			'videogame_page_mvb-stats' === $hook ||
+			'videogame_page_mvb-recommendations' === $hook ||
+			'videogame_page_mvb-data-health' === $hook
 		) {
 			wp_enqueue_style(
 				'mvb-admin',
@@ -729,21 +749,11 @@ class MVB_Admin {
 	 * @return bool
 	 */
 	private static function is_post_finished( $post_id ) {
-		if ( has_term( 'finished', 'mvb_game_status', $post_id ) ) {
-			return true;
+		if ( class_exists( 'MVB_Data_Health' ) ) {
+			return 'finished' === MVB_Data_Health::get_status_slug( $post_id );
 		}
 
-		$meta_status = get_post_meta( $post_id, 'videogame_status', true );
-		if ( is_string( $meta_status ) && 'finished' === strtolower( trim( $meta_status ) ) ) {
-			return true;
-		}
-
-		$finished_term = get_term_by( 'slug', 'finished', 'mvb_game_status' );
-		if ( ! $finished_term || is_wp_error( $finished_term ) ) {
-			return false;
-		}
-
-		return (int) $meta_status > 0 && (int) $meta_status === (int) $finished_term->term_id;
+		return has_term( 'finished', 'mvb_game_status', $post_id );
 	}
 
 	/**
@@ -768,6 +778,10 @@ class MVB_Admin {
 	 * @return int
 	 */
 	private static function completion_value_to_timestamp( $value ) {
+		if ( class_exists( 'MVB_Data_Health' ) ) {
+			return MVB_Data_Health::completion_value_to_timestamp( $value );
+		}
+
 		if ( ! is_scalar( $value ) ) {
 			return 0;
 		}

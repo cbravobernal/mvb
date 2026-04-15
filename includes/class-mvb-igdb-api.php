@@ -747,8 +747,10 @@ class MVB_IGDB_API {
 
 			// Set default status
 			try {
-				$acf_result = update_field( 'videogame_status', 'backlog', $post_id );
-				error_log( 'Status set to backlog. Result: ' . var_export( $acf_result, true ) );
+				$status_result = class_exists( 'MVB_Data_Health' ) ?
+					MVB_Data_Health::set_status_taxonomy( $post_id, 'backlog' ) :
+					! is_wp_error( wp_set_object_terms( $post_id, 'backlog', 'mvb_game_status', false ) );
+				error_log( 'Status set to backlog taxonomy. Result: ' . var_export( $status_result, true ) );
 			} catch ( Exception $e ) {
 				error_log( 'Exception while setting status: ' . $e->getMessage() );
 			}

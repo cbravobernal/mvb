@@ -29,7 +29,10 @@ define( 'MVB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 // Include required files.
 require_once MVB_PLUGIN_DIR . 'includes/class-mvb-admin.php';
+require_once MVB_PLUGIN_DIR . 'includes/class-mvb-data-health.php';
+require_once MVB_PLUGIN_DIR . 'includes/class-mvb-hltb-api.php';
 require_once MVB_PLUGIN_DIR . 'includes/class-mvb-igdb-api.php';
+require_once MVB_PLUGIN_DIR . 'includes/class-mvb-recommendations.php';
 require_once MVB_PLUGIN_DIR . 'includes/class-mvb-taxonomies.php';
 require_once MVB_PLUGIN_DIR . 'includes/class-mvb.php';
 

@@ -21,8 +21,14 @@ class MVB {
 	public static function init() {
 		// Initialize admin.
 		MVB_Admin::init();
+		// Initialize data health and normalization hooks.
+		MVB_Data_Health::init();
 		// Initialize IGDB API.
 		MVB_IGDB_API::init();
+		// Initialize HLTB API.
+		MVB_HLTB_API::init();
+		// Initialize recommendations.
+		MVB_Recommendations::init();
 		// Initialize taxonomies.
 		MVB_Taxonomies::init();
 
@@ -324,10 +330,14 @@ class MVB {
 
 		// Save completion date if set.
 		if ( isset( $_POST['videogame_completion_date'] ) ) {
+			$raw_date      = sanitize_text_field( wp_unslash( $_POST['videogame_completion_date'] ) );
+			$normalized    = class_exists( 'MVB_Data_Health' ) ? MVB_Data_Health::normalize_completion_date( $raw_date ) : $raw_date;
+			$date_to_store = '' !== $normalized ? $normalized : $raw_date;
+
 			update_post_meta(
 				$post_id,
 				'videogame_completion_date',
-				sanitize_text_field( wp_unslash( $_POST['videogame_completion_date'] ) )
+				$date_to_store
 			);
 		}
 

@@ -1359,7 +1359,7 @@ class MVB_Admin {
 			return;
 		}
 
-		$current_year = isset( $_GET['completion_year'] ) ? $_GET['completion_year'] : '';
+		$current_year = isset( $_GET['completion_year'] ) ? sanitize_text_field( wp_unslash( $_GET['completion_year'] ) ) : '';
 
 		// Get all completion years from the database
 		global $wpdb;
@@ -1415,7 +1415,11 @@ class MVB_Admin {
 			return;
 		}
 
-		$year = sanitize_text_field( $_GET['completion_year'] );
+		$year = sanitize_text_field( wp_unslash( $_GET['completion_year'] ) );
+		// Only accept a four-digit year to keep the LIKE value safe.
+		if ( ! preg_match( '/^[0-9]{4}$/', $year ) ) {
+			return;
+		}
 		error_log( 'MVB: Filtering by year: ' . $year );
 
 		// Use LIKE to match the year prefix
@@ -1443,7 +1447,7 @@ class MVB_Admin {
 			return;
 		}
 
-		$current_platform = isset( $_GET['platform'] ) ? $_GET['platform'] : '';
+		$current_platform = isset( $_GET['platform'] ) ? sanitize_text_field( wp_unslash( $_GET['platform'] ) ) : '';
 
 		// Get all platforms
 		$platforms = get_terms(
@@ -1493,7 +1497,7 @@ class MVB_Admin {
 			return;
 		}
 
-		$platform = sanitize_text_field( $_GET['platform'] );
+		$platform = sanitize_text_field( wp_unslash( $_GET['platform'] ) );
 		error_log( 'MVB: Filtering by platform: ' . $platform );
 
 		// Add tax query for platform

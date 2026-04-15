@@ -136,6 +136,10 @@ class MVB_IGDB_API {
 			return $access_token;
 		}
 
+		// Escape characters that would break out of the IGDB APICalypse search literal.
+		$safe_query = str_replace( array( '\\', '"' ), array( '\\\\', '\\"' ), (string) $query );
+		$safe_limit = max( 1, min( 50, (int) $limit ) );
+
 		$response = wp_remote_post(
 			'https://api.igdb.com/v4/games',
 			array(
@@ -143,9 +147,9 @@ class MVB_IGDB_API {
 					'Client-ID'     => get_option( 'mvb_igdb_client_id' ),
 					'Authorization' => 'Bearer ' . $access_token,
 				),
-				'body'    => 'search "' . $query . '"; 
-						  fields name,summary,first_release_date,cover.*,involved_companies.*,involved_companies.company.*,platforms.*; 
-						  limit ' . $limit . ';',
+				'body'    => 'search "' . $safe_query . '";
+						  fields name,summary,first_release_date,cover.*,involved_companies.*,involved_companies.company.*,platforms.*;
+						  limit ' . $safe_limit . ';',
 			)
 		);
 
@@ -425,7 +429,11 @@ class MVB_IGDB_API {
 	public static function handle_search_ajax() {
 		check_ajax_referer( 'mvb_search', 'nonce' );
 
-		$search = isset( $_POST['search'] ) ? sanitize_text_field( $_POST['search'] ) : '';
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mvb' ) ), 403 );
+		}
+
+		$search = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
 
 		if ( empty( $search ) ) {
 			wp_send_json_error( array( 'message' => __( 'Please enter a search term', 'mvb' ) ) );
@@ -815,10 +823,7 @@ class MVB_IGDB_API {
 				error_log( 'Failed to get valid game data array' );
 				wp_send_json_error(
 					array(
-						'message'     => __( 'Invalid game data', 'mvb' ),
-						'raw_type'    => gettype( $raw_data ),
-						'raw_content' => substr( $raw_data, 0, 1000 ), // First 1000 chars
-						'json_error'  => json_last_error_msg(),
+						'message' => __( 'Invalid game data', 'mvb' ),
 					)
 				);
 				return;

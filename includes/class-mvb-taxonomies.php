@@ -336,12 +336,19 @@ class MVB_Taxonomies {
 	 * @param int $term_id The term ID.
 	 */
 	public static function save_game_status_fields( $term_id ) {
-		if ( isset( $_POST['status_color'] ) ) {
-			update_term_meta(
-				$term_id,
-				'status_color',
-				sanitize_hex_color( $_POST['status_color'] )
-			);
+		if ( ! current_user_can( 'manage_categories' ) ) {
+			return;
 		}
+
+		if ( ! isset( $_POST['status_color'] ) ) {
+			return;
+		}
+
+		$color = sanitize_hex_color( wp_unslash( $_POST['status_color'] ) );
+		if ( null === $color ) {
+			return;
+		}
+
+		update_term_meta( $term_id, 'status_color', $color );
 	}
 }

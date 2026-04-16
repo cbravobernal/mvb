@@ -4,7 +4,7 @@
     "@wordpress/prettier-config": "^4.17.0"
   },
   "name": "mvb",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "description": "Integrate block bindings in SCF",
   "main": "index.js",
   "scripts": {

@@ -75,6 +75,30 @@ Create the following taxonomies (both should only be registered for the `videoga
   - Platform information
 - Manage your game collection with status tracking
 - Organize games by companies and platforms
+- Native Gutenberg Block Bindings (`mvb/videogame`) so core blocks can display videogame meta without custom blocks
+
+## 🧩 Block Bindings
+
+MVB registers a Block Bindings source named `mvb/videogame`. Any core block that supports bindings (Paragraph, Heading, Image, Button) can read videogame meta directly.
+
+**Available keys**
+
+| Key | Description |
+| --- | --- |
+| `videogame_completion_date` | Date the game was completed (normalized to the site's date format) |
+| `videogame_release_date` | Game release date |
+| `hltb_main_story` | Main story length in hours (HowLongToBeat) |
+| `igdb_id` | IGDB identifier |
+
+**Example — Paragraph bound to completion date**
+
+```html
+<!-- wp:paragraph {"metadata":{"bindings":{"content":{"source":"mvb/videogame","args":{"key":"videogame_completion_date"}}}}} -->
+<p>placeholder</p>
+<!-- /wp:paragraph -->
+```
+
+Requires WordPress 6.5+ (Block Bindings API).
 
 ## 🤝 Contributing
 

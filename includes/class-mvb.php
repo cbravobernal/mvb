@@ -31,14 +31,21 @@ class MVB {
 		MVB_Recommendations::init();
 		// Initialize taxonomies.
 		MVB_Taxonomies::init();
+		// Register block bindings source.
+		MVB_Block_Bindings::init();
+		// Manage roles and CPT capabilities.
+		MVB_Capabilities::init();
 
 		// Load text domain.
 		add_action( 'plugins_loaded', array( __CLASS__, 'load_textdomain' ) );
 
+		// Expose videogame meta through the REST API so blocks can read it.
+		add_action( 'init', array( __CLASS__, 'register_videogame_meta' ), 20 );
+
 		// Add quick edit functionality.
 		add_action( 'quick_edit_custom_box', array( __CLASS__, 'add_quick_edit_field' ), 10, 2 );
 		add_action( 'save_post', array( __CLASS__, 'save_quick_edit_field' ), 10, 2 );
-		add_action( 'admin_footer', array( __CLASS__, 'quick_edit_javascript' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_quick_edit_assets' ) );
 
 		// Add column for status.
 		add_filter( 'manage_videogame_posts_columns', array( __CLASS__, 'add_videogame_status_column' ) );
@@ -54,6 +61,53 @@ class MVB {
 
 		// Check for updates.
 		add_action( 'admin_init', array( __CLASS__, 'check_for_updates' ) );
+	}
+
+	/**
+	 * Register videogame post meta with REST exposure.
+	 *
+	 * SCF stores these fields but does not expose them to the REST API by default.
+	 * Registering the meta here makes them readable by blocks, the REST API and
+	 * block bindings without changing the SCF configuration.
+	 */
+	public static function register_videogame_meta() {
+		$meta = array(
+			'videogame_completion_date' => array(
+				'type'        => 'string',
+				'description' => __( 'Date the game was completed.', 'mvb' ),
+			),
+			'videogame_release_date'    => array(
+				'type'        => 'string',
+				'description' => __( 'Game release date.', 'mvb' ),
+			),
+			'hltb_main_story'           => array(
+				'type'        => 'number',
+				'description' => __( 'Main story length in hours from HowLongToBeat.', 'mvb' ),
+			),
+			'igdb_id'                   => array(
+				'type'        => 'integer',
+				'description' => __( 'IGDB identifier for the game.', 'mvb' ),
+			),
+		);
+
+		foreach ( $meta as $key => $args ) {
+			register_post_meta(
+				'videogame',
+				$key,
+				array(
+					'type'              => $args['type'],
+					'description'       => $args['description'],
+					'single'            => true,
+					'show_in_rest'      => true,
+					'sanitize_callback' => 'number' === $args['type']
+						? 'floatval'
+						: ( 'integer' === $args['type'] ? 'absint' : 'sanitize_text_field' ),
+					'auth_callback'     => function () {
+						return current_user_can( 'edit_posts' );
+					},
+				)
+			);
+		}
 	}
 
 	/**
@@ -77,8 +131,9 @@ class MVB {
 		// Create default statuses.
 		self::create_default_game_statuses();
 
-		// Create gamer role.
-		self::create_gamer_role();
+		// Sync role capabilities.
+		delete_option( MVB_Capabilities::ROLE_VERSION_OPTION );
+		MVB_Capabilities::sync_roles();
 
 		// Flush rewrite rules.
 		flush_rewrite_rules();
@@ -222,72 +277,34 @@ class MVB {
 					<span class="title"><?php esc_html_e( 'Completion Date', 'mvb' ); ?></span>
 					<input type="date" name="videogame_completion_date" />
 				</label>
+				<?php wp_nonce_field( 'mvb_save_quick_edit', 'mvb_quick_edit_nonce' ); ?>
 			</div>
 		</fieldset>
 		<?php
 	}
 
 	/**
-	 * Add JavaScript for quick edit
+	 * Enqueue quick edit script on the videogame list screen.
+	 *
+	 * @param string $hook_suffix Current admin page hook.
 	 */
-	public static function quick_edit_javascript() {
+	public static function enqueue_quick_edit_assets( $hook_suffix ) {
+		if ( 'edit.php' !== $hook_suffix ) {
+			return;
+		}
+
 		$screen = get_current_screen();
-
-		// Only load on videogame post type.
-		if ( 'videogame' !== $screen->post_type ) {
+		if ( ! $screen || 'videogame' !== $screen->post_type || 'edit' !== $screen->base ) {
 			return;
 		}
 
-		// Only load on the edit.php page (list view), not on post edit screens or other pages.
-		if ( 'edit' !== $screen->base ) {
-			return;
-		}
-
-		// Don't load on the migration page.
-		if ( isset( $_GET['page'] ) && 'mvb-migrate-statuses' === $_GET['page'] ) {
-			return;
-		}
-
-		// Don't load on post edit action.
-		if ( isset( $_GET['action'] ) && 'edit' === $_GET['action'] ) {
-			return;
-		}
-		?>
-		<script type="text/javascript">
-		jQuery(function($) {
-			// Check if inlineEditPost is defined.
-			if (typeof inlineEditPost === 'undefined') {
-				console.error('inlineEditPost is not defined. Quick edit functionality may not work properly.');
-				return;
-			}
-			
-			// Store the original edit function.
-			var wp_inline_edit = inlineEditPost.edit;
-			
-			// Override the edit function.
-			inlineEditPost.edit = function(id) {
-				// Call the original edit function.
-				wp_inline_edit.apply(this, arguments);
-				
-				var post_id = 0;
-				if (typeof(id) == 'object') {
-					post_id = parseInt(this.getId(id));
-				}
-				
-				if (post_id > 0) {
-					var $row = $('#post-' + post_id);
-					var $editRow = $('#edit-' + post_id);
-					
-					// Get the completion date.
-					var completionDate = $row.find('.column-videogame_completion_date').text().trim();
-					
-					// Set value in the edit form.
-					$editRow.find('input[name="videogame_completion_date"]').val(completionDate);
-				}
-			};
-		});
-		</script>
-		<?php
+		wp_enqueue_script(
+			'mvb-quick-edit',
+			MVB_PLUGIN_URL . 'assets/js/quick-edit.js',
+			array( 'jquery', 'inline-edit-post' ),
+			MVB_VERSION,
+			true
+		);
 	}
 
 	/**
@@ -323,7 +340,17 @@ class MVB {
 			return $post_id;
 		}
 
-		// Verify nonce and permissions.
+		// Verify nonce — bail silently when absent so other save_post flows (REST, block editor) still run.
+		if ( ! isset( $_POST['mvb_quick_edit_nonce'] ) ) {
+			return $post_id;
+		}
+
+		$nonce = sanitize_text_field( wp_unslash( $_POST['mvb_quick_edit_nonce'] ) );
+		if ( ! wp_verify_nonce( $nonce, 'mvb_save_quick_edit' ) ) {
+			return $post_id;
+		}
+
+		// Check capability.
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
 			return $post_id;
 		}
@@ -424,37 +451,4 @@ class MVB {
 		$query->set( 'tax_query', $tax_query );
 	}
 
-	/**
-	 * Create the Gamer role.
-	 */
-	private static function create_gamer_role() {
-		// Get or create the gamer role.
-		$gamer = get_role( 'mvb_gamer' );
-		if ( null === $gamer ) {
-			$gamer = add_role(
-				'mvb_gamer',
-				__( 'Gamer', 'mvb' ),
-				array(
-					'read' => true,
-					'upload_files' => true, // Required for uploading game covers and media files!
-					'edit_mvb_game' => true,
-					'read_mvb_game' => true,
-					'delete_mvb_game' => true,
-					'edit_mvb_games' => true,
-					'publish_mvb_games' => true,
-					'mvb_manage_igdb_settings' => true, // Allow gamers to manage their own IGDB settings!
-				)
-			);
-		} else {
-			// Update existing role capabilities.
-			$gamer->add_cap( 'read' );
-			$gamer->add_cap( 'upload_files' );
-			$gamer->add_cap( 'edit_mvb_game' );
-			$gamer->add_cap( 'read_mvb_game' );
-			$gamer->add_cap( 'delete_mvb_game' );
-			$gamer->add_cap( 'edit_mvb_games' );
-			$gamer->add_cap( 'publish_mvb_games' );
-			$gamer->add_cap( 'mvb_manage_igdb_settings' );
-		}
-	}
 }

@@ -46,11 +46,15 @@ class MVB_Block_Bindings {
 	 */
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'register_source' ) );
-		add_action( 'enqueue_block_editor_assets', array( __CLASS__, 'enqueue_editor_panel' ) );
 	}
 
 	/**
 	 * Register the block bindings source.
+	 *
+	 * SCF already exposes its own bindings picker for fields with
+	 * `allow_in_bindings: 1`. We only register the PHP source so hand-authored
+	 * block markup or custom code can use `mvb/videogame` to read formatted
+	 * values (e.g. normalized dates).
 	 */
 	public static function register_source() {
 		if ( ! function_exists( 'register_block_bindings_source' ) ) {
@@ -65,48 +69,6 @@ class MVB_Block_Bindings {
 				'uses_context'       => array( 'postId', 'postType' ),
 			)
 		);
-	}
-
-	/**
-	 * Enqueue the editor sidebar panel for videogame posts.
-	 */
-	public static function enqueue_editor_panel() {
-		if ( ! function_exists( 'get_current_screen' ) ) {
-			return;
-		}
-
-		$screen = get_current_screen();
-		if ( ! $screen || 'videogame' !== $screen->post_type ) {
-			return;
-		}
-
-		wp_enqueue_script(
-			'mvb-bindings-panel',
-			MVB_PLUGIN_URL . 'assets/js/editor-bindings-panel.js',
-			array(
-				'wp-plugins',
-				'wp-editor',
-				'wp-element',
-				'wp-components',
-				'wp-data',
-				'wp-i18n',
-			),
-			MVB_VERSION,
-			true
-		);
-
-		wp_localize_script(
-			'mvb-bindings-panel',
-			'MVBBindingsData',
-			array(
-				'postType' => 'videogame',
-				'keys'     => self::allowed_keys(),
-			)
-		);
-
-		if ( function_exists( 'wp_set_script_translations' ) ) {
-			wp_set_script_translations( 'mvb-bindings-panel', 'mvb' );
-		}
 	}
 
 	/**

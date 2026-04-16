@@ -4,7 +4,7 @@
  * Requires Plugins: secure-custom-fields
  * Plugin URI: https://github.com/cbravobernal/mvb
  * Description: A secure custom fields plugin with block bindings for WordPress
- * Version: 1.3.1
+ * Version: 1.3.2
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: Carlos Bravo
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 // Define plugin constants.
-define( 'MVB_VERSION', '1.3.1' );
+define( 'MVB_VERSION', '1.3.2' );
 define( 'MVB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MVB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

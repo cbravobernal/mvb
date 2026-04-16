@@ -90,6 +90,18 @@ class MVB {
 			),
 		);
 
+		$sanitizers = array(
+			'number'  => static function ( $value ) {
+				return (float) $value;
+			},
+			'integer' => static function ( $value ) {
+				return (int) $value;
+			},
+			'string'  => static function ( $value ) {
+				return sanitize_text_field( (string) $value );
+			},
+		);
+
 		foreach ( $meta as $key => $args ) {
 			register_post_meta(
 				'videogame',
@@ -99,10 +111,8 @@ class MVB {
 					'description'       => $args['description'],
 					'single'            => true,
 					'show_in_rest'      => true,
-					'sanitize_callback' => 'number' === $args['type']
-						? 'floatval'
-						: ( 'integer' === $args['type'] ? 'absint' : 'sanitize_text_field' ),
-					'auth_callback'     => function () {
+					'sanitize_callback' => $sanitizers[ $args['type'] ],
+					'auth_callback'     => static function () {
 						return current_user_can( 'edit_posts' );
 					},
 				)

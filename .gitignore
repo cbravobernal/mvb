@@ -52,4 +52,8 @@ package-lock.json
 
 # Temporary files
 /tmp/
-*.tmp 
+*.tmp
+
+# Claude Code state
+/.claude/
+.engram/ 

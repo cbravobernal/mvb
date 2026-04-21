@@ -1,0 +1,59 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Tech stack: PHP 7.4+ (declared), WordPress 6.5+, JavaScript (Interactivity API, @wordpress/scripts), SCF (Secure Custom Fields)
+  Architecture: OOP WordPress plugin — class-per-concern in includes/; PSR-4 autoload in src/
+  Key subsystems: Block Bindings (mvb/videogame source), IGDB API, HLTB API, Recommendations, Capabilities, Data Health
+  Style: WordPress Coding Standards (WPCS 3.x + PHPCompatibilityWP), short array syntax allowed, text_domain=mvb
+  Assets: assets/js (admin.js, quick-edit.js, search.js) + assets/css/mvb.css; built via @wordpress/scripts
+
+strict_tdd: false
+
+testing:
+  strict_tdd: false
+  detected: "2026-04-20"
+  note: "No test runner detected. No PHPUnit, Pest, or wp-env config found. Strict TDD Mode unavailable."
+  test_runner:
+    command: ~
+    framework: ~
+  layers:
+    unit: { available: false, tool: ~ }
+    integration: { available: false, tool: ~ }
+    e2e: { available: false, tool: ~ }
+  coverage:
+    available: false
+    command: ~
+  quality_tools:
+    linter: { available: true, command: "composer run lint" }
+    type_checker: { available: false, command: ~ }
+    formatter: { available: true, command: "composer run fix" }
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected PHP classes and WordPress hooks
+    - Note SCF field dependencies when meta is involved
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Reference WordPress hook names explicitly
+  design:
+    - Include hook flow diagrams for complex features
+    - Document architecture decisions with rationale
+    - Note Block Bindings key contract when relevant
+  tasks:
+    - Group tasks by phase (infrastructure, implementation, testing)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+  apply:
+    - Follow WordPress Coding Standards (WPCS)
+    - Use WordPress core functions over custom equivalents
+    - Sanitize inputs, escape outputs, verify nonces
+    - Enqueue assets via wp_enqueue_script/style
+  verify:
+    - No automated test runner — manual verification via wp-env or local WP install
+    - Compare implementation against every spec scenario
+    - Check PHPCS passes: composer run lint
+  archive:
+    - Warn before merging destructive deltas (large removals)

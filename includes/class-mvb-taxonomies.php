@@ -88,7 +88,6 @@ class MVB_Taxonomies {
 
 		// Register Game Status Taxonomy
 		self::register_game_status_taxonomy();
-
 	}
 
 	/**

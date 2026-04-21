@@ -200,9 +200,14 @@ class MVB_Admin_Stats {
 		}
 
 		$rows = array_reverse( $rows );
-		$rows = array_values( array_filter( $rows, static function ( $row ) {
-			return isset( $row->year ) && isset( $row->total );
-		} ) );
+		$rows = array_values(
+			array_filter(
+				$rows,
+				static function ( $row ) {
+					return isset( $row->year ) && isset( $row->total );
+				}
+			)
+		);
 
 		if ( empty( $rows ) ) {
 			echo '<p>' . esc_html__( 'No completion trend data available yet.', 'mvb' ) . '</p>';
@@ -214,15 +219,23 @@ class MVB_Admin_Stats {
 		$padding      = 28;
 		$plot_width   = $chart_width - ( $padding * 2 );
 		$plot_height  = $chart_height - ( $padding * 2 );
-		$max_total    = max( 1, max( array_map( static function ( $row ) {
-			return (int) $row->total;
-		}, $rows ) ) );
+		$max_total    = max(
+			1,
+			max(
+				array_map(
+					static function ( $row ) {
+						return (int) $row->total;
+					},
+					$rows
+				)
+			)
+		);
 
 		$points = array();
 		$count  = count( $rows );
 		foreach ( $rows as $index => $row ) {
-			$x = $padding + ( $count > 1 ? ( $index / ( $count - 1 ) ) * $plot_width : $plot_width / 2 );
-			$y = $chart_height - $padding - ( ( (int) $row->total / $max_total ) * $plot_height );
+			$x        = $padding + ( $count > 1 ? ( $index / ( $count - 1 ) ) * $plot_width : $plot_width / 2 );
+			$y        = $chart_height - $padding - ( ( (int) $row->total / $max_total ) * $plot_height );
 			$points[] = array(
 				'x'     => round( $x, 2 ),
 				'y'     => round( $y, 2 ),
@@ -278,9 +291,17 @@ class MVB_Admin_Stats {
 			return;
 		}
 
-		$max_count = max( 1, max( array_map( static function ( $item ) {
-			return isset( $item->count ) ? (int) $item->count : 0;
-		}, $items ) ) );
+		$max_count = max(
+			1,
+			max(
+				array_map(
+					static function ( $item ) {
+						return isset( $item->count ) ? (int) $item->count : 0;
+					},
+					$items
+				)
+			)
+		);
 		?>
 		<ul class="mvb-bar-list">
 			<?php foreach ( $items as $item ) : ?>

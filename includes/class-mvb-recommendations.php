@@ -173,7 +173,7 @@ class MVB_Recommendations {
 	 * @param string $size    Image size.
 	 * @return string
 	 */
-	private static function get_cover_url( $post_id, $size = 'medium' ) {
+	public static function get_cover_url( $post_id, $size = 'medium' ) {
 		$url = get_the_post_thumbnail_url( $post_id, $size );
 		if ( $url ) {
 			return $url;

@@ -1342,17 +1342,10 @@ class MVB_Admin {
 
 		$results = array();
 		foreach ( $games as $game ) {
-			$cover_id = get_post_meta( $game->ID, 'videogame_cover', true );
-			$thumb    = '';
-			if ( $cover_id ) {
-				$img   = wp_get_attachment_image_src( (int) $cover_id, 'thumbnail' );
-				$thumb = is_array( $img ) ? $img[0] : '';
-			}
-
 			$results[] = array(
 				'id'    => $game->ID,
 				'title' => $game->post_title,
-				'thumb' => $thumb,
+				'thumb' => MVB_Recommendations::get_cover_url( $game->ID, 'thumbnail' ),
 			);
 		}
 

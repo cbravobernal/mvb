@@ -35,6 +35,12 @@ class MVB {
 		MVB_Block_Bindings::init();
 		// Manage roles and CPT capabilities.
 		MVB_Capabilities::init();
+		// Register library CPT and meta.
+		MVB_Library::init();
+		// Registration flow tweaks.
+		MVB_Registration::init();
+		// Run pending DB migrations.
+		MVB_Migration::init();
 
 		// Load text domain.
 		add_action( 'plugins_loaded', array( __CLASS__, 'load_textdomain' ) );
@@ -141,9 +147,25 @@ class MVB {
 		// Create default statuses.
 		self::create_default_game_statuses();
 
+		// Ensure mvb_player role exists.
+		MVB_Capabilities::register_mvb_player_role();
+
 		// Sync role capabilities.
 		delete_option( MVB_Capabilities::ROLE_VERSION_OPTION );
 		MVB_Capabilities::sync_roles();
+
+		// Enable native WordPress registration unless the admin explicitly opts out
+		// via the `mvb_enable_registration` filter. Writing to the option directly
+		// avoids filter-timing issues on wp-login.php where the `option_*` filter
+		// stack is not always reached in time.
+		if ( apply_filters( 'mvb_enable_registration', true ) ) {
+			update_option( 'users_can_register', 1 );
+			update_option( 'default_role', 'mvb_player' );
+		}
+
+		// Set schema version sentinel so migration runs on first real load.
+		// Do NOT set it here — let the migration run on first admin_init after activation.
+		// If it has never been set, migrate_to_v2 will run and set it.
 
 		// Flush rewrite rules.
 		flush_rewrite_rules();
@@ -460,5 +482,4 @@ class MVB {
 
 		$query->set( 'tax_query', $tax_query );
 	}
-
 }

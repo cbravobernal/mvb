@@ -100,6 +100,85 @@ MVB registers a Block Bindings source named `mvb/videogame`. Any core block that
 
 Requires WordPress 6.5+ (Block Bindings API).
 
+## 👥 Multi-user library (v1.4.0)
+
+Starting from v1.4.0, MVB supports multiple players, each with their own personal game library.
+
+### Architecture
+
+MVB uses a **shared catalog + per-user library** model:
+
+- The `videogame` CPT is the global game catalog (IGDB-sourced, admin-managed).
+- Each player has their own `mvb_library_entry` posts (one per game they track).
+- Library entries store per-user data: status, completion date, device, rating, and notes.
+
+### Player Registration
+
+1. When the plugin is active, WordPress registration is enabled automatically.
+2. New registrants receive the `mvb_player` role by default.
+3. After login, players are redirected directly to **My Library** (not the dashboard).
+4. Admins can find the registration URL in the footer of any MVB admin page.
+
+### mvb_player Role
+
+The `mvb_player` role has the following capabilities:
+
+| Area | What they can do |
+|---|---|
+| Library entries | Create, edit, delete **their own** entries |
+| Devices | Create, edit, delete **their own** devices |
+| Videogame catalog | No access (read-only via My Library page) |
+| WordPress admin | Access to My Library page only |
+
+Players cannot edit other players' library entries or access catalog management pages.
+
+### My Library Admin Page
+
+Players see a **My Library** menu item in the WordPress admin:
+
+- Lists all their library entries with status, completion date, device, and rating.
+- Provides an **Add Game to My Library** form with:
+  - Live search of the shared videogame catalog (by title, with cover thumbnail).
+  - Status selector (Backlog / Playing / Completed / Dropped / Wishlist).
+  - Completion date picker.
+  - Device selector (from their own devices + admin-created devices).
+  - Rating (1–10) and free-form notes.
+
+### Data Migration (v2 schema)
+
+The first time an administrator loads the WordPress admin after upgrading to v1.4.0,
+the plugin automatically migrates legacy data:
+
+- Any `videogame` post with a non-admin `post_author` gets a `mvb_library_entry` created
+  for that author, copying `completion_date` and the first device ID from the
+  `videogame_devices` meta (array) into the new entry.
+- The `videogame` post is then reassigned to the admin user (catalog stays admin-owned).
+- Orphaned posts (`post_author = 0`) are reassigned to admin with no library entry.
+- Migration runs under `admin_init` and is gated on `manage_options`, so unauthenticated
+  frontend hits never trigger the reassignment.
+- Each videogame is only marked migrated **after** its reassignment (and library entry,
+  when applicable) completes successfully, so a transient failure can be retried on the
+  next admin page load without losing data.
+- A dismissible admin notice summarises the result.
+
+> **Important**: Back up your database before upgrading on a live site. The migration
+> changes `post_author` on videogame posts, which cannot be automatically reversed.
+
+### Dependencies and opt-outs
+
+- **Devices CPT (`mvb_device`)**: the device picker in the My Library form and the
+  device migration both expect the `mvb_device` custom post type and the
+  `videogame_devices` meta (array of device IDs) to be available. Both are provided by
+  the devices feature (planned for a later patch). Without them, the device dropdown is
+  hidden and library entries are created with an empty device field — no crash, no
+  data loss.
+- **Registration opt-out**: the plugin enables native WordPress registration and sets
+  `mvb_player` as the default role. Administrators can disable this behavior by
+  returning `false` from the `mvb_enable_registration` filter:
+  ```php
+  add_filter( 'mvb_enable_registration', '__return_false' );
+  ```
+
 ## 🤝 Contributing
 
 Since this is an AI-first project:

@@ -190,10 +190,10 @@ class MVB_Recommendations {
 
 		$redirect = add_query_arg(
 			array(
-				'post_type'                   => 'videogame',
-				'page'                        => 'mvb-recommendations',
-				'length_pref'                 => $length_pref,
-				'mvb_recommendation_updated'  => '1',
+				'post_type'                  => 'videogame',
+				'page'                       => 'mvb-recommendations',
+				'length_pref'                => $length_pref,
+				'mvb_recommendation_updated' => '1',
 			),
 			admin_url( 'edit.php' )
 		);
@@ -285,11 +285,11 @@ class MVB_Recommendations {
 			)
 		);
 
-		$finished_count         = 0;
-		$length_hours           = array();
-		$platform_counts        = array();
-		$completion_timestamps  = array();
-		$fetch_budget           = 3;
+		$finished_count        = 0;
+		$length_hours          = array();
+		$platform_counts       = array();
+		$completion_timestamps = array();
+		$fetch_budget          = 3;
 
 		foreach ( $games as $game ) {
 			$post_id = (int) $game->ID;
@@ -424,17 +424,17 @@ class MVB_Recommendations {
 				$avg_length
 			);
 		} elseif ( null === $hltb_hours ) {
-			$score -= 7;
+			$score    -= 7;
 			$reasons[] = __( 'HLTB length missing, confidence is lower.', 'mvb' );
 		}
 
 		if ( null !== $hltb_hours ) {
 			$target_hours = self::get_length_target( $length_pref );
 			if ( null !== $target_hours ) {
-				$distance   = abs( $hltb_hours - $target_hours ) / max( 1, $target_hours );
-				$pref_fit   = max( 0, 20 * ( 1 - $distance ) );
-				$score     += $pref_fit;
-				$reasons[]  = sprintf(
+				$distance  = abs( $hltb_hours - $target_hours ) / max( 1, $target_hours );
+				$pref_fit  = max( 0, 20 * ( 1 - $distance ) );
+				$score    += $pref_fit;
+				$reasons[] = sprintf(
 					/* translators: %s: selected preference. */
 					__( 'Matches your current "%s" length preference.', 'mvb' ),
 					$length_pref

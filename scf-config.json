@@ -88,6 +88,159 @@
         "show_in_rest": 0
     },
     {
+        "key": "group_lib_entry_details",
+        "title": "Library Entry Details",
+        "fields": [
+            {
+                "key": "field_lib_videogame_id",
+                "label": "Videogame",
+                "name": "library_videogame_id",
+                "aria-label": "",
+                "type": "post_object",
+                "instructions": "",
+                "required": 1,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "post_type": ["videogame"],
+                "taxonomy": "",
+                "return_format": "id",
+                "multiple": 0,
+                "allow_null": 0,
+                "allow_in_bindings": 0
+            },
+            {
+                "key": "field_lib_status",
+                "label": "Status",
+                "name": "library_status",
+                "aria-label": "",
+                "type": "select",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "choices": {
+                    "backlog": "Backlog",
+                    "playing": "Playing",
+                    "completed": "Completed",
+                    "dropped": "Dropped",
+                    "wishlist": "Wishlist"
+                },
+                "default_value": "backlog",
+                "return_format": "value",
+                "multiple": 0,
+                "allow_null": 0,
+                "allow_in_bindings": 0
+            },
+            {
+                "key": "field_lib_completion_date",
+                "label": "Completion Date",
+                "name": "library_completion_date",
+                "aria-label": "",
+                "type": "date_picker",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "display_format": "d\/m\/Y",
+                "return_format": "Ymd",
+                "first_day": 1,
+                "allow_in_bindings": 0
+            },
+            {
+                "key": "field_lib_device_id",
+                "label": "Device",
+                "name": "library_device_id",
+                "aria-label": "",
+                "type": "post_object",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "post_type": ["mvb_device"],
+                "taxonomy": "",
+                "return_format": "id",
+                "multiple": 0,
+                "allow_null": 1,
+                "allow_in_bindings": 0
+            },
+            {
+                "key": "field_lib_rating",
+                "label": "Rating (1-10)",
+                "name": "library_rating",
+                "aria-label": "",
+                "type": "number",
+                "instructions": "Leave 0 for unrated.",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": 0,
+                "min": 0,
+                "max": 10,
+                "step": 1,
+                "allow_in_bindings": 0
+            },
+            {
+                "key": "field_lib_notes",
+                "label": "Notes",
+                "name": "library_notes",
+                "aria-label": "",
+                "type": "wysiwyg",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": "",
+                "tabs": "all",
+                "toolbar": "basic",
+                "media_upload": 0,
+                "delay": 0,
+                "allow_in_bindings": 0
+            }
+        ],
+        "location": [
+            [
+                {
+                    "param": "post_type",
+                    "operator": "==",
+                    "value": "mvb_library_entry"
+                }
+            ]
+        ],
+        "menu_order": 0,
+        "position": "normal",
+        "style": "default",
+        "label_placement": "top",
+        "instruction_placement": "label",
+        "hide_on_screen": "",
+        "active": true,
+        "description": "",
+        "show_in_rest": 0
+    },
+    {
         "key": "post_type_67aa0e91c6f98",
         "title": "Videogames",
         "menu_order": 0,

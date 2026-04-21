@@ -310,7 +310,7 @@ class MVB_Data_Health {
 			$status_synced = self::set_status_taxonomy( $post_id, $target_status );
 		}
 
-		$legacy_removed = false;
+		$legacy_removed    = false;
 		$can_remove_legacy = $remove_legacy_meta && ( '' !== $tax_status || ( '' !== $target_status && $status_synced ) );
 		if ( $can_remove_legacy ) {
 			$legacy_raw = get_post_meta( $post_id, 'videogame_status', true );

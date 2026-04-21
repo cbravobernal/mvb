@@ -84,7 +84,8 @@ class MVB_Recommendations {
 
 			<form method="get" class="mvb-recommendation-filters">
 				<input type="hidden" name="post_type" value="videogame" />
-				<input type="hidden" name="page" value="mvb-recommendations" />
+				<input type="hidden" name="page" value="mvb-tools" />
+				<input type="hidden" name="tab" value="recommendations" />
 				<label for="mvb-length-pref"><?php esc_html_e( 'Length Preference', 'mvb' ); ?></label>
 				<select id="mvb-length-pref" name="length_pref">
 					<option value="balanced" <?php selected( $length_pref, 'balanced' ); ?>><?php esc_html_e( 'Balanced', 'mvb' ); ?></option>
@@ -104,7 +105,7 @@ class MVB_Recommendations {
 					<?php foreach ( $recommendations as $recommendation ) : ?>
 						<?php
 						$post_id      = (int) $recommendation['post_id'];
-						$thumbnail    = get_the_post_thumbnail_url( $post_id, 'medium' );
+						$thumbnail    = self::get_cover_url( $post_id, 'medium' );
 						$status_label = ! empty( $recommendation['status'] ) ? ucfirst( $recommendation['status'] ) : __( 'Untracked', 'mvb' );
 						?>
 						<div class="mvb-recommendation-card">
@@ -166,6 +167,30 @@ class MVB_Recommendations {
 	}
 
 	/**
+	 * Resolve a game cover URL with a fallback to the SCF `videogame_cover` attachment.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $size    Image size.
+	 * @return string
+	 */
+	private static function get_cover_url( $post_id, $size = 'medium' ) {
+		$url = get_the_post_thumbnail_url( $post_id, $size );
+		if ( $url ) {
+			return $url;
+		}
+
+		$attachment_id = (int) get_post_meta( $post_id, 'videogame_cover', true );
+		if ( $attachment_id > 0 ) {
+			$fallback = wp_get_attachment_image_url( $attachment_id, $size );
+			if ( $fallback ) {
+				return $fallback;
+			}
+		}
+
+		return '';
+	}
+
+	/**
 	 * Handle "Set to Playing" action.
 	 */
 	public static function handle_set_playing() {
@@ -191,7 +216,8 @@ class MVB_Recommendations {
 		$redirect = add_query_arg(
 			array(
 				'post_type'                   => 'videogame',
-				'page'                        => 'mvb-recommendations',
+				'page'                        => 'mvb-tools',
+				'tab'                         => 'recommendations',
 				'length_pref'                 => $length_pref,
 				'mvb_recommendation_updated'  => '1',
 			),

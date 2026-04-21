@@ -47,51 +47,118 @@ class MVB_Admin {
 	 * Add admin menu items
 	 */
 	public static function add_admin_menu() {
-		// Add "Add Game" page
-		add_submenu_page(
-			'edit.php?post_type=videogame',  // Parent slug
-			__( 'Add Game', 'mvb' ),         // Page title
-			__( 'Add Game', 'mvb' ),         // Menu title
-			'edit_posts',                     // Capability
-			'mvb-add-game',               // Menu slug
-			array( 'MVB_Admin_Add_Game', 'render_page' ) // Callback function
-		);
-
 		add_submenu_page(
 			'edit.php?post_type=videogame',
-			__( 'Update Covers', 'mvb' ),
-			__( 'Update Covers', 'mvb' ),
-			'manage_options',
-			'mvb-update-covers',
-			array( 'MVB_Admin_Update_Covers', 'render_page' )
-		);
-
-		add_submenu_page(
-			'edit.php?post_type=videogame',
-			__( 'Stats', 'mvb' ),
-			__( 'Stats', 'mvb' ),
+			__( 'MVB Tools', 'mvb' ),
+			__( 'Tools', 'mvb' ),
 			'edit_posts',
-			'mvb-stats',
-			array( 'MVB_Admin_Stats', 'render_page' )
+			'mvb-tools',
+			array( __CLASS__, 'render_tools_page' )
 		);
 
-		add_submenu_page(
-			'edit.php?post_type=videogame',
-			__( 'Recommendations', 'mvb' ),
-			__( 'Recommendations', 'mvb' ),
-			'edit_posts',
-			'mvb-recommendations',
-			array( 'MVB_Recommendations', 'render_page' )
-		);
+		// Hide the default "Add New Videogame" submenu — creation flows through IGDB.
+		remove_submenu_page( 'edit.php?post_type=videogame', 'post-new.php?post_type=videogame' );
+	}
 
-		add_submenu_page(
-			'edit.php?post_type=videogame',
-			__( 'Data Health', 'mvb' ),
-			__( 'Data Health', 'mvb' ),
-			'manage_options',
-			'mvb-data-health',
-			array( 'MVB_Data_Health', 'render_page' )
+	/**
+	 * Tab registry for the MVB Tools page.
+	 *
+	 * @return array<string,array{label:string,cap:string,cb:callable}>
+	 */
+	private static function get_tools_tabs() {
+		return array(
+			'add-game'        => array(
+				'label' => __( 'Add Game', 'mvb' ),
+				'cap'   => 'edit_posts',
+				'cb'    => array( 'MVB_Admin_Add_Game', 'render_page' ),
+			),
+			'stats'           => array(
+				'label' => __( 'Stats', 'mvb' ),
+				'cap'   => 'edit_posts',
+				'cb'    => array( 'MVB_Admin_Stats', 'render_page' ),
+			),
+			'recommendations' => array(
+				'label' => __( 'Recommendations', 'mvb' ),
+				'cap'   => 'edit_posts',
+				'cb'    => array( 'MVB_Recommendations', 'render_page' ),
+			),
+			'update-covers'   => array(
+				'label' => __( 'Update Covers', 'mvb' ),
+				'cap'   => 'manage_options',
+				'cb'    => array( 'MVB_Admin_Update_Covers', 'render_page' ),
+			),
+			'data-health'     => array(
+				'label' => __( 'Data Health', 'mvb' ),
+				'cap'   => 'manage_options',
+				'cb'    => array( 'MVB_Data_Health', 'render_page' ),
+			),
 		);
+	}
+
+	/**
+	 * Resolve the active tab slug, falling back to the first tab the user can access.
+	 *
+	 * @return string|null
+	 */
+	private static function resolve_active_tab() {
+		$tabs      = self::get_tools_tabs();
+		$requested = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+
+		if ( isset( $tabs[ $requested ] ) && current_user_can( $tabs[ $requested ]['cap'] ) ) {
+			return $requested;
+		}
+
+		foreach ( $tabs as $slug => $tab ) {
+			if ( current_user_can( $tab['cap'] ) ) {
+				return $slug;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Render the unified MVB Tools page with tab navigation.
+	 */
+	public static function render_tools_page() {
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			return;
+		}
+
+		$tabs   = self::get_tools_tabs();
+		$active = self::resolve_active_tab();
+		?>
+		<div class="wrap">
+			<h1><?php esc_html_e( 'MVB Tools', 'mvb' ); ?></h1>
+			<nav class="nav-tab-wrapper">
+				<?php
+				foreach ( $tabs as $slug => $tab ) {
+					if ( ! current_user_can( $tab['cap'] ) ) {
+						continue;
+					}
+					$url   = add_query_arg(
+						array(
+							'post_type' => 'videogame',
+							'page'      => 'mvb-tools',
+							'tab'       => $slug,
+						),
+						admin_url( 'edit.php' )
+					);
+					$class = 'nav-tab' . ( $slug === $active ? ' nav-tab-active' : '' );
+					printf(
+						'<a href="%s" class="%s">%s</a>',
+						esc_url( $url ),
+						esc_attr( $class ),
+						esc_html( $tab['label'] )
+					);
+				}
+				?>
+			</nav>
+		</div>
+		<?php
+		if ( null !== $active ) {
+			call_user_func( $tabs[ $active ]['cb'] );
+		}
 	}
 
 	/**
@@ -107,13 +174,9 @@ class MVB_Admin {
 			wp_enqueue_script( 'inline-edit-post' );
 		}
 
-		// Load on settings and add game pages
-		if ( 'settings_page_mvb-settings' === $hook ||
-			'videogame_page_mvb-add-game' === $hook ||
-			'videogame_page_mvb-stats' === $hook ||
-			'videogame_page_mvb-recommendations' === $hook ||
-			'videogame_page_mvb-data-health' === $hook
-		) {
+		// Load on tools page and legacy settings hook.
+		if ( 'settings_page_mvb-settings' === $hook || 'videogame_page_mvb-tools' === $hook ) {
+			$active_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'add-game';
 			wp_enqueue_style(
 				'mvb-admin',
 				MVB_PLUGIN_URL . 'assets/css/mvb.css',
@@ -148,8 +211,8 @@ class MVB_Admin {
 				)
 			);
 
-			// Only load search functionality on the add game page
-			if ( 'videogame_page_mvb-add-game' === $hook ) {
+			// Only load search functionality on the Add Game tab.
+			if ( 'videogame_page_mvb-tools' === $hook && 'add-game' === $active_tab ) {
 				wp_enqueue_script(
 					'mvb-search',
 					MVB_PLUGIN_URL . 'assets/js/search.js',

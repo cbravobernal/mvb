@@ -53,6 +53,10 @@ class MVB_Capabilities {
 		$args['capability_type'] = array( 'mvb_game', 'mvb_games' );
 		$args['map_meta_cap']    = true;
 
+		// Guarantee featured-image support for covers.
+		$supports         = isset( $args['supports'] ) && is_array( $args['supports'] ) ? $args['supports'] : array();
+		$args['supports'] = array_values( array_unique( array_merge( $supports, array( 'thumbnail' ) ) ) );
+
 		return $args;
 	}
 

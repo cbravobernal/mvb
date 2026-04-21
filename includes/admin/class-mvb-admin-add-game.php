@@ -38,7 +38,7 @@ class MVB_Admin_Add_Game {
 						printf(
 							/* translators: %s: settings page URL */
 							esc_html__( 'Please configure your IGDB API credentials in the %s.', 'mvb' ),
-							'<a href="' . esc_url( admin_url( 'options-general.php?page=mvb-settings' ) ) . '">' .
+							'<a href="' . esc_url( admin_url( 'edit.php?post_type=videogame&page=mvb-igdb-settings' ) ) . '">' .
 							esc_html__( 'settings page', 'mvb' ) .
 							'</a>'
 						);

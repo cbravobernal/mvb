@@ -35,6 +35,7 @@ require_once MVB_PLUGIN_DIR . 'includes/admin/class-mvb-admin-update-covers.php'
 require_once MVB_PLUGIN_DIR . 'includes/class-mvb-block-bindings.php';
 require_once MVB_PLUGIN_DIR . 'includes/class-mvb-capabilities.php';
 require_once MVB_PLUGIN_DIR . 'includes/class-mvb-data-health.php';
+require_once MVB_PLUGIN_DIR . 'includes/class-mvb-devices.php';
 require_once MVB_PLUGIN_DIR . 'includes/class-mvb-hltb-api.php';
 require_once MVB_PLUGIN_DIR . 'includes/class-mvb-igdb-api.php';
 require_once MVB_PLUGIN_DIR . 'includes/class-mvb-recommendations.php';

@@ -201,31 +201,80 @@ class MVB_IGDB_API {
 	}
 
 	/**
-	 * Add IGDB settings page.
+	 * Add IGDB settings page (single entry, tabbed for global + personal keys).
 	 */
 	public static function add_igdb_settings_page() {
-		// Global settings for admins
-		if ( current_user_can( 'manage_options' ) ) {
-			add_submenu_page(
-				'edit.php?post_type=videogame',
-				__( 'IGDB Settings', 'mvb' ),
-				__( 'IGDB Settings', 'mvb' ),
-				'manage_options',
-				'mvb-igdb-settings',
-				array( __CLASS__, 'render_igdb_settings_page' )
-			);
+		$can_global   = current_user_can( 'manage_options' );
+		$can_personal = current_user_can( 'mvb_manage_igdb_settings' );
+
+		if ( ! $can_global && ! $can_personal ) {
+			return;
 		}
 
-		// User-specific settings for gamers
-		if ( current_user_can( 'mvb_manage_igdb_settings' ) ) {
-			add_submenu_page(
-				'edit.php?post_type=videogame',
-				__( 'Your IGDB Settings', 'mvb' ),
-				__( 'Your IGDB Settings', 'mvb' ),
-				'mvb_manage_igdb_settings',
-				'mvb-user-igdb-settings',
-				array( __CLASS__, 'render_user_igdb_settings_page' )
-			);
+		// Use the highest available capability as the menu gate.
+		$cap = $can_global ? 'manage_options' : 'mvb_manage_igdb_settings';
+
+		add_submenu_page(
+			'edit.php?post_type=videogame',
+			__( 'IGDB Settings', 'mvb' ),
+			__( 'IGDB Settings', 'mvb' ),
+			$cap,
+			'mvb-igdb-settings',
+			array( __CLASS__, 'render_igdb_settings_dispatcher' )
+		);
+	}
+
+	/**
+	 * Dispatcher: renders the IGDB settings page with Global/Personal tabs.
+	 */
+	public static function render_igdb_settings_dispatcher() {
+		$can_global   = current_user_can( 'manage_options' );
+		$can_personal = current_user_can( 'mvb_manage_igdb_settings' );
+
+		if ( ! $can_global && ! $can_personal ) {
+			return;
+		}
+
+		$tabs = array();
+		if ( $can_global ) {
+			$tabs['global'] = __( 'Global', 'mvb' );
+		}
+		if ( $can_personal ) {
+			$tabs['personal'] = __( 'Your Keys', 'mvb' );
+		}
+
+		$requested = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		$active    = isset( $tabs[ $requested ] ) ? $requested : (string) array_key_first( $tabs );
+		?>
+		<div class="wrap">
+			<h1><?php esc_html_e( 'IGDB Settings', 'mvb' ); ?></h1>
+			<nav class="nav-tab-wrapper">
+				<?php
+				foreach ( $tabs as $slug => $label ) {
+					$url   = add_query_arg(
+						array(
+							'post_type' => 'videogame',
+							'page'      => 'mvb-igdb-settings',
+							'tab'       => $slug,
+						),
+						admin_url( 'edit.php' )
+					);
+					$class = 'nav-tab' . ( $slug === $active ? ' nav-tab-active' : '' );
+					printf(
+						'<a href="%s" class="%s">%s</a>',
+						esc_url( $url ),
+						esc_attr( $class ),
+						esc_html( $label )
+					);
+				}
+				?>
+			</nav>
+		</div>
+		<?php
+		if ( 'global' === $active ) {
+			self::render_igdb_settings_page();
+		} elseif ( 'personal' === $active ) {
+			self::render_user_igdb_settings_page();
 		}
 	}
 

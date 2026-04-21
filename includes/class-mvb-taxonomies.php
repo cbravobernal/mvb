@@ -50,6 +50,7 @@ class MVB_Taxonomies {
 				),
 				'hierarchical'      => false,
 				'show_ui'           => true,
+				'show_in_menu'      => false,
 				'show_admin_column' => true,
 				'query_var'         => true,
 				'rewrite'           => array( 'slug' => 'company' ),
@@ -77,6 +78,7 @@ class MVB_Taxonomies {
 				),
 				'hierarchical'      => false,
 				'show_ui'           => true,
+				'show_in_menu'      => false,
 				'show_admin_column' => true,
 				'query_var'         => true,
 				'rewrite'           => array( 'slug' => 'platform' ),
@@ -117,11 +119,19 @@ class MVB_Taxonomies {
 			'public'            => true,
 			'show_in_nav_menus' => true,
 			'show_ui'           => true,
+			'show_in_menu'      => false,
 			'show_admin_column' => true,
 			'query_var'         => true,
 			'rewrite'           => array( 'slug' => 'game-status' ),
 			'show_in_rest'      => true,
 			'rest_base'         => 'game-status',
+			// Opinionated set — no term creation/editing/deletion from UI.
+			'capabilities'      => array(
+				'manage_terms' => 'do_not_allow',
+				'edit_terms'   => 'do_not_allow',
+				'delete_terms' => 'do_not_allow',
+				'assign_terms' => 'edit_posts',
+			),
 		);
 
 		register_taxonomy( 'mvb_game_status', 'videogame', $args );

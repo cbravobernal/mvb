@@ -38,6 +38,7 @@ class MVB_Block_Bindings {
 			'videogame_release_date'    => __( 'Release Date', 'mvb' ),
 			'hltb_main_story'           => __( 'HLTB Main Story (hours)', 'mvb' ),
 			'igdb_id'                   => __( 'IGDB ID', 'mvb' ),
+			'videogame_devices'         => __( 'Played on (devices)', 'mvb' ),
 		);
 	}
 
@@ -104,21 +105,22 @@ class MVB_Block_Bindings {
 		}
 
 		$value = get_post_meta( $post_id, $key, true );
-		if ( '' === $value || null === $value ) {
+		if ( null === $value || '' === $value || ( is_array( $value ) && empty( $value ) ) ) {
 			return null;
 		}
 
-		return self::format_value( $key, $value );
+		return self::format_value( $key, $value, $source_args );
 	}
 
 	/**
 	 * Normalize meta values for display.
 	 *
-	 * @param string $key   Meta key.
-	 * @param mixed  $value Raw meta value.
+	 * @param string $key         Meta key.
+	 * @param mixed  $value       Raw meta value.
+	 * @param array  $source_args Optional binding args (e.g. `separator`).
 	 * @return string
 	 */
-	protected static function format_value( $key, $value ) {
+	protected static function format_value( $key, $value, $source_args = array() ) {
 		switch ( $key ) {
 			case 'videogame_completion_date':
 			case 'videogame_release_date':
@@ -127,9 +129,42 @@ class MVB_Block_Bindings {
 				return (string) (float) $value;
 			case 'igdb_id':
 				return (string) (int) $value;
+			case 'videogame_devices':
+				return self::format_device_list( $value, $source_args );
 			default:
 				return (string) $value;
 		}
+	}
+
+	/**
+	 * Render a device ID array as "Name 1, Name 2".
+	 *
+	 * @param mixed $value       Raw meta value.
+	 * @param array $source_args Binding args (supports `separator`).
+	 * @return string
+	 */
+	protected static function format_device_list( $value, $source_args ) {
+		if ( ! is_array( $value ) ) {
+			return '';
+		}
+
+		$separator = isset( $source_args['separator'] ) && is_string( $source_args['separator'] )
+			? $source_args['separator']
+			: ', ';
+
+		$names = array();
+		foreach ( $value as $id ) {
+			$id = (int) $id;
+			if ( $id <= 0 ) {
+				continue;
+			}
+			$title = get_the_title( $id );
+			if ( '' !== $title ) {
+				$names[] = $title;
+			}
+		}
+
+		return implode( $separator, $names );
 	}
 
 	/**

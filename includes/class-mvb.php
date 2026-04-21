@@ -23,6 +23,8 @@ class MVB {
 		MVB_Admin::init();
 		// Initialize data health and normalization hooks.
 		MVB_Data_Health::init();
+		// Initialize devices CPT + migration handler.
+		MVB_Devices::init();
 		// Initialize IGDB API.
 		MVB_IGDB_API::init();
 		// Initialize HLTB API.
@@ -193,8 +195,48 @@ class MVB {
 	 */
 	public static function display_videogame_status_column( $column, $post_id ) {
 		if ( 'videogame_completion_date' === $column ) {
-			$completion_date = get_post_meta( $post_id, 'videogame_completion_date', true );
-			echo esc_html( $completion_date );
+			$raw       = get_post_meta( $post_id, 'videogame_completion_date', true );
+			$timestamp = class_exists( 'MVB_Data_Health' )
+				? MVB_Data_Health::completion_value_to_timestamp( $raw )
+				: (int) strtotime( (string) $raw );
+
+			if ( $timestamp > 0 ) {
+				echo esc_html( wp_date( get_option( 'date_format' ), $timestamp ) );
+			} elseif ( ! empty( $raw ) ) {
+				echo esc_html( (string) $raw );
+			} else {
+				echo '—';
+			}
+			return;
+		}
+
+		if ( 'videogame_devices' === $column ) {
+			$ids = (array) get_post_meta( $post_id, 'videogame_devices', true );
+			$ids = array_filter( array_map( 'intval', $ids ) );
+
+			if ( empty( $ids ) ) {
+				echo '—';
+				return;
+			}
+
+			$links = array();
+			foreach ( $ids as $device_id ) {
+				if ( class_exists( 'MVB_Devices' ) && MVB_Devices::POST_TYPE !== get_post_type( $device_id ) ) {
+					continue;
+				}
+				$title = get_the_title( $device_id );
+				if ( '' === $title ) {
+					continue;
+				}
+				$links[] = sprintf(
+					'<a href="%s">%s</a>',
+					esc_url( get_edit_post_link( $device_id ) ),
+					esc_html( $title )
+				);
+			}
+
+			echo $links ? wp_kses( implode( ', ', $links ), array( 'a' => array( 'href' => array() ) ) ) : '—';
+			return;
 		}
 	}
 
@@ -327,8 +369,9 @@ class MVB {
 		// Remove date column.
 		unset( $columns['date'] );
 
-		// Add our custom column.
+		// Add our custom columns.
 		$columns['videogame_completion_date'] = __( 'Completion Date', 'mvb' );
+		$columns['videogame_devices']         = __( 'Devices', 'mvb' );
 		return $columns;
 	}
 

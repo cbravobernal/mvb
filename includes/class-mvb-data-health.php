@@ -65,6 +65,23 @@ class MVB_Data_Health {
 				</div>
 			<?php endif; ?>
 
+			<?php if ( ! empty( $_GET['mvb_devices_migrated'] ) ) : ?>
+				<div class="notice notice-success is-dismissible">
+					<p>
+						<?php
+						echo esc_html(
+							sprintf(
+								/* translators: 1: devices created, 2: game→device links added. */
+								__( 'Played-on migration complete. Devices created: %1$d, Game links: %2$d.', 'mvb' ),
+								isset( $_GET['mvb_devices_count'] ) ? absint( $_GET['mvb_devices_count'] ) : 0,
+								isset( $_GET['mvb_devices_links'] ) ? absint( $_GET['mvb_devices_links'] ) : 0
+							)
+						);
+						?>
+					</p>
+				</div>
+			<?php endif; ?>
+
 			<div class="mvb-stats-grid">
 				<div class="mvb-stat-card">
 					<div class="mvb-stat-value"><?php echo esc_html( $report['total_games'] ); ?></div>
@@ -120,6 +137,27 @@ class MVB_Data_Health {
 						<li><?php esc_html_e( 'Keeps unparseable date values untouched so you can inspect manually.', 'mvb' ); ?></li>
 					</ul>
 				</div>
+
+				<div class="mvb-stats-section">
+					<h2><?php esc_html_e( 'Devices Migration', 'mvb' ); ?></h2>
+					<p>
+						<?php esc_html_e( 'Convert the legacy "Played on" taxonomy into the new Devices CPT. Creates one device per term, reusing existing devices by name, and relinks every affected game via the videogame_devices meta.', 'mvb' ); ?>
+					</p>
+					<p>
+						<?php
+						if ( class_exists( 'MVB_Devices' ) && MVB_Devices::has_migrated() ) {
+							echo '<em>' . esc_html__( 'Migration already run at least once. Re-running is safe and idempotent.', 'mvb' ) . '</em>';
+						}
+						?>
+					</p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="<?php echo esc_attr( MVB_Devices::MIGRATION_NONCE ); ?>" />
+						<?php wp_nonce_field( MVB_Devices::MIGRATION_NONCE ); ?>
+						<button type="submit" class="button button-primary">
+							<?php esc_html_e( 'Migrate Played-On to Devices', 'mvb' ); ?>
+						</button>
+					</form>
+				</div>
 			</div>
 		</div>
 		<?php
@@ -144,7 +182,8 @@ class MVB_Data_Health {
 		$url    = add_query_arg(
 			array(
 				'post_type'         => 'videogame',
-				'page'              => 'mvb-data-health',
+				'page'              => 'mvb-tools',
+				'tab'               => 'data-health',
 				'mvb_health_done'   => '1',
 				'mvb_health_mode'   => $mode,
 				'mvb_health_total'  => $result['processed'],
